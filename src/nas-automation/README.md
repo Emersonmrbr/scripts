@@ -175,7 +175,7 @@ The wrapper script automatically:
 
 ```
 /etc/script/
-├── github-backupsh           # Main script
+├── github-backup.sh           # Main script
 ├── github-cron-wrapper.sh    # Cron wrapper with advanced features
 ├── setup.sh                  # Initial setup and dependencies
 └── README.md                 # This file
