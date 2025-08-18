@@ -174,13 +174,13 @@ The wrapper script automatically:
 ## 📁 File Structure
 
 ```
-/volume1/scripts/
-├── github-clone.sh           # Main script
+/etc/script/
+├── github-backupsh           # Main script
 ├── github-cron-wrapper.sh    # Cron wrapper with advanced features
 ├── setup.sh                  # Initial setup and dependencies
 └── README.md                 # This file
 
-/volume1/github-repos/        # Default repository storage
+/volume1/GithubBackup/        # Default repository storage
 ├── repo1/
 ├── repo2/
 └── ...
