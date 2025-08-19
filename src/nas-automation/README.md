@@ -39,14 +39,14 @@ A comprehensive solution to automatically clone and sync all your GitHub reposit
 ### 1. Connect to your NAS
 
 ```bash
-ssh admin@YOUR_NAS_IP
+ssh admin@YOUR_NAS_IP -p 22
 ```
 
 ### 2. Create scripts directory
 
 ```bash
-sudo mkdir -p /volume1/scripts
-cd /volume1/scripts
+sudo mkdir -p /etc/script
+cd /etc/script
 ```
 
 ### 3. Download and setup scripts
@@ -64,9 +64,9 @@ sudo ./setup.sh
 ### 4. Create main script
 
 ```bash
-nano github-clone.sh
+nano github-backup.sh
 # Paste the main script content and save
-chmod +x github-clone.sh
+chmod +x github-backup.sh
 ```
 
 ### 5. Create cron wrapper (optional but recommended)
@@ -81,12 +81,12 @@ chmod +x github-cron-wrapper.sh
 
 ### Required Settings
 
-Edit the `github-clone.sh` file and configure these variables:
+Edit the `github-backup.sh` file and configure these variables:
 
 ```bash
 GITHUB_USERNAME="your_github_username"    # Your GitHub username
 GITHUB_TOKEN="your_personal_access_token" # GitHub Personal Access Token
-BASE_DIR="/volume1/github-repos"          # Directory for repositories
+BASE_DIR="/volume1/GithubBackup"          # Directory for repositories
 INCLUDE_FORKS=false                       # Include forked repositories
 LOG_FILE="/var/log/github-clone.log"      # Log file location
 ```
@@ -107,7 +107,7 @@ LOG_FILE="/var/log/github-clone.log"      # Log file location
 
 ```bash
 # Run the script manually
-./github-clone.sh
+./github-backup.sh
 
 # Check logs
 tail -f /var/log/github-clone.log
@@ -115,17 +115,7 @@ tail -f /var/log/github-clone.log
 
 ### Automated Scheduling with Cron
 
-#### Method 1: Web Interface (ADM)
-
-1. Open ADM → Services → Task Scheduler
-2. Create → User-defined Script
-3. Configure:
-   - **Name**: `GitHub Repositories Sync`
-   - **User**: `admin`
-   - **Command**: `/volume1/scripts/github-cron-wrapper.sh`
-   - **Schedule**: Set desired frequency
-
-#### Method 2: SSH (crontab)
+#### Method SSH (crontab)
 
 ```bash
 # Edit crontab
@@ -133,16 +123,16 @@ crontab -e
 
 # Add one of these lines:
 # Daily at 2 AM
-0 2 * * * /volume1/scripts/github-cron-wrapper.sh
+0 2 * * * /etc/script/github-cron-wrapper.sh
 
 # Every 6 hours
-0 */6 * * * /volume1/scripts/github-cron-wrapper.sh
+0 */6 * * * /etc/script/github-cron-wrapper.sh
 
 # Every hour
-0 * * * * /volume1/scripts/github-cron-wrapper.sh
+0 * * * * /etc/script/github-cron-wrapper.sh
 
 # Business hours only (8 AM to 6 PM)
-0 8-18 * * * /volume1/scripts/github-cron-wrapper.sh
+0 8-18 * * * /etc/script/github-cron-wrapper.sh
 ```
 
 ## 📊 Monitoring
@@ -222,8 +212,8 @@ local repos_page=$(echo "$response" | jq -r '.[] | select(.archived == false and
 #### Permission Denied
 
 ```bash
-chmod +x /volume1/scripts/*.sh
-sudo chown admin:admin /volume1/scripts/*.sh
+chmod +x /etc/script/*.sh
+sudo chown admin:admin /etc/script/*.sh
 ```
 
 #### Dependencies Missing
@@ -250,7 +240,7 @@ apkg install git curl jq
 df -h /volume1
 
 # Clean up old repositories if needed
-rm -rf /volume1/github-repos/unwanted-repo
+rm -rf /volume1/GithubBackup/unwanted-repo
 ```
 
 ### Debug Mode
