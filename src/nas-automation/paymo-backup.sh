@@ -3,7 +3,6 @@
 # Script to backup Paymo data to ASUSTOR NAS
 # Configuration - EDIT THESE VARIABLES
 
-# PAYMO_TOKEN="${PAYMO_TOKEN:-$(cat ~/.paymo_token 2>/dev/null)}"
 PAYMO_TOKEN="${PAYMO_TOKEN:-$(cat /home/Emerson/.paymo_token 2>/dev/null | tr -d '\n')}"
 PAYMO_EMAIL="emersonm@nucleomap.com.br"   # Your Paymo email
 BASE_DIR="/volume1/Backup/Paymo"          # Directory where backups will be saved
