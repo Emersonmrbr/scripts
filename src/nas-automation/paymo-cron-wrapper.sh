@@ -30,9 +30,9 @@ log() {
     local level="$1"
     local message="$2"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-
+    
     echo "[$timestamp] [$level] [PID:$$] $message" >> "$LOG_FILE"
-
+    
     # If running in terminal, also show on screen
     if [ -t 1 ]; then
         case "$level" in
@@ -48,7 +48,7 @@ log() {
 send_notification() {
     local subject="$1"
     local message="$2"
-
+    
     if [ ! -z "$NOTIFICATION_EMAIL" ] && command -v mail &> /dev/null; then
         echo "$message" | mail -s "$subject" "$NOTIFICATION_EMAIL"
         log "INFO" "Notification sent to $NOTIFICATION_EMAIL"
@@ -60,14 +60,14 @@ rotate_log() {
     if [ -f "$LOG_FILE" ]; then
         local log_size=$(du -m "$LOG_FILE" 2>/dev/null | cut -f1 || echo "0")
         local max_size=$(echo "$MAX_LOG_SIZE" | sed 's/M//')
-
+        
         if [ "$log_size" -gt "$max_size" ]; then
             log "INFO" "Rotating log (size: ${log_size}M > ${max_size}M)"
-
+            
             # Keep last 1000 lines
             tail -1000 "$LOG_FILE" > "${LOG_FILE}.tmp"
             mv "${LOG_FILE}.tmp" "$LOG_FILE"
-
+            
             log "INFO" "Log rotated successfully"
         fi
     fi
@@ -77,7 +77,7 @@ rotate_log() {
 cleanup_old_logs() {
     # Remove logs older than 90 days (since we keep incremental data forever)
     find "$(dirname "$LOG_FILE")" -name "$(basename "$LOG_FILE").*" -mtime +90 -delete 2>/dev/null
-
+    
     # Remove orphaned lock files (older than 1 day)
     find "$(dirname "$LOCK_FILE")" -name "$(basename "$LOCK_FILE")*" -mtime +1 -delete 2>/dev/null
 }
@@ -85,17 +85,17 @@ cleanup_old_logs() {
 # Function to check API connectivity
 check_connectivity() {
     log "INFO" "Checking internet connectivity..."
-
+    
     if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
         log "ERROR" "No internet connectivity"
         return 1
     fi
-
+    
     if ! curl -s --connect-timeout 10 "https://app.paymoapp.com" >/dev/null; then
         log "ERROR" "Cannot reach Paymo servers"
         return 1
     fi
-
+    
     log "INFO" "Connectivity check passed"
     return 0
 }
@@ -103,22 +103,22 @@ check_connectivity() {
 # Function to check prerequisites
 check_prerequisites() {
     local errors=0
-
+    
     log "INFO" "Checking prerequisites..."
-
+    
     # Check if main script exists
     if [ ! -f "$SCRIPT_PATH" ]; then
         log "ERROR" "Main script not found: $SCRIPT_PATH"
         errors=$((errors + 1))
     fi
-
+    
     # Check if script is executable
     if [ ! -x "$SCRIPT_PATH" ]; then
         log "ERROR" "Main script is not executable: $SCRIPT_PATH"
         log "INFO" "Run: chmod +x $SCRIPT_PATH"
         errors=$((errors + 1))
     fi
-
+    
     # Check if log directory exists
     local log_dir=$(dirname "$LOG_FILE")
     if [ ! -d "$log_dir" ]; then
@@ -130,7 +130,7 @@ check_prerequisites() {
             errors=$((errors + 1))
         fi
     fi
-
+    
     # Check for required dependencies
     local missing_deps=()
     for cmd in curl jq tar; do
@@ -138,13 +138,13 @@ check_prerequisites() {
             missing_deps+=("$cmd")
         fi
     done
-
+    
     if [ ${#missing_deps[@]} -ne 0 ]; then
         log "ERROR" "Missing dependencies: ${missing_deps[*]}"
         log "INFO" "Install with: apkg install ${missing_deps[*]}"
         errors=$((errors + 1))
     fi
-
+    
     # Check disk space (warn if less than 1GB free)
     local backup_dir="/volume1/Backup/Paymo"
     if [ -d "$backup_dir" ]; then
@@ -155,7 +155,7 @@ check_prerequisites() {
             log "INFO" "Disk space check: ${free_space}GB free"
         fi
     fi
-
+    
     return $errors
 }
 
@@ -163,7 +163,7 @@ check_prerequisites() {
 check_lock() {
     if [ -f "$LOCK_FILE" ]; then
         local lock_pid=$(cat "$LOCK_FILE" 2>/dev/null)
-
+        
         # Check if process still exists
         if [ ! -z "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
             log "WARNING" "Paymo backup is already running (PID: $lock_pid). Exiting."
@@ -173,7 +173,7 @@ check_lock() {
             rm -f "$LOCK_FILE"
         fi
     fi
-
+    
     return 0
 }
 
@@ -206,86 +206,86 @@ cleanup_on_signal() {
 
 # Function to get backup statistics
 get_backup_stats() {
-    local incremental_dir="/volume1/Backup/Paymo/incremental"
+    local dir="/volume1/Backup/Paymo"
     local stats_msg=""
-
-    if [ -d "$incremental_dir" ]; then
-        local total_files=$(find "$incremental_dir" -name "*.json" -type f | wc -l)
-        local total_size=$(du -sh "$incremental_dir" 2>/dev/null | cut -f1 || echo "unknown")
-
-        stats_msg="Incremental files: $total_files | Total size: $total_size"
-
+    
+    if [ -d "$dir" ]; then
+        local total_files=$(find "$dir" -name "*.json" -type f | wc -l)
+        local total_size=$(du -sh "$dir" 2>/dev/null | cut -f1 || echo "unknown")
+        
+        stats_msg="Files: $total_files | Total size: $total_size"
+        
         # Count entries in largest file as example
-        local largest_file=$(find "$incremental_dir" -name "*.json" -type f -exec ls -la {} + 2>/dev/null | sort -k5 -nr | head -1 | awk '{print $9}')
+        local largest_file=$(find "$dir" -name "*.json" -type f -exec ls -la {} + 2>/dev/null | sort -k5 -nr | head -1 | awk '{print $9}')
         if [ ! -z "$largest_file" ] && [ -f "$largest_file" ]; then
-            local entries=$(jq length "$largest_file" 2>/dev/null || echo "0")
+            local entries=$(jq '.[-1].data | to_entries[] | select(.value | type == "array") | .value | length' "$largest_file" 2>/dev/null | head -n1 || echo "0")
             local basename=$(basename "$largest_file" .json)
             stats_msg="$stats_msg | Example: $basename has $entries entries"
         fi
     else
         stats_msg="Backup directory not found"
     fi
-
+    
     echo "$stats_msg"
 }
 
 # Main function
 main() {
     local start_time=$(date +%s)
-
+    
     log "INFO" "=== STARTING PAYMO BACKUP (via CRON) ==="
     log "INFO" "Script: $SCRIPT_PATH"
     log "INFO" "Log: $LOG_FILE"
     log "INFO" "PID: $$"
     log "INFO" "User: $(whoami)"
-
+    
     # Rotate log if necessary
     rotate_log
-
+    
     # Check connectivity first
     if ! check_connectivity; then
         log "ERROR" "Connectivity check failed. Aborting backup."
         send_notification "Paymo Backup - Connectivity Error" "No internet connectivity or Paymo unreachable."
         exit 1
     fi
-
+    
     # Check prerequisites
     if ! check_prerequisites; then
         log "ERROR" "Prerequisites not met. Aborting."
         send_notification "Paymo Backup - Configuration Error" "Prerequisites not met. Check logs at $LOG_FILE"
         exit 1
     fi
-
+    
     # Check lock
     if ! check_lock; then
         exit 0
     fi
-
+    
     # Create lock
     if ! create_lock; then
         exit 1
     fi
-
+    
     # Setup cleanup on signal
     trap cleanup_on_signal INT TERM
-
+    
     # Get pre-backup stats
     local pre_stats=$(get_backup_stats)
     log "INFO" "Pre-backup stats: $pre_stats"
-
+    
     # Execute main script
     log "INFO" "Executing Paymo backup script..."
-
+    
     if "$SCRIPT_PATH" >> "$LOG_FILE" 2>&1; then
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))
-
+        
         # Get post-backup stats
         local post_stats=$(get_backup_stats)
-
+        
         log "SUCCESS" "Paymo backup completed successfully (duration: ${duration}s)"
         log "INFO" "Post-backup stats: $post_stats"
-
+        
         # Success notification (only send weekly to avoid spam)
         local day_of_week=$(date +%u)  # 1-7, Monday is 1
         if [ "$day_of_week" = "1" ] && [ ! -z "$NOTIFICATION_EMAIL" ]; then
@@ -296,14 +296,14 @@ $post_stats
 Weekly status: All incremental backups are working properly."
             send_notification "Paymo Backup - Weekly Status" "$notification_msg"
         fi
-
+        
         exit_code=0
     else
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))
-
+        
         log "ERROR" "Paymo backup failed (duration: ${duration}s)"
-
+        
         # Error notification (always send)
         local error_msg="Paymo backup failed after ${duration} seconds.
 Check logs at: $LOG_FILE
@@ -311,16 +311,16 @@ Pre-backup stats: $pre_stats
 
 Please investigate the issue."
         send_notification "Paymo Backup - ERROR" "$error_msg"
-
+        
         exit_code=1
     fi
-
+    
     # Cleanup
     cleanup_old_logs
     remove_lock
-
+    
     log "INFO" "=== PAYMO BACKUP PROCESS FINISHED (exit code: $exit_code) ==="
-
+    
     exit $exit_code
 }
 
