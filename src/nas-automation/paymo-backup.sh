@@ -474,21 +474,21 @@ generate_backup_summary() {
                 local basename filename entries file_size
                 basename=$(basename "$file" .json)
                 filename=$(basename "$file")
-                entries=$(jq '.data | length // 0' "$file" 2>/dev/null || echo "0")
+                entries=$(jq '.[-1].data | to_entries[] | select(.value | type == "array") | .value | length' "$file" 2>/dev/null | head -n1 || echo "0")
                 file_size=$(du -sh "$file" 2>/dev/null | cut -f1 || echo "unknown")
                 printf "%-20s: %6s entries (%8s)\n" "$basename" "$entries" "$file_size"
             fi
         done
-        
+                
         echo ""
         echo "STORAGE SUMMARY:"
         echo "---------------"
         echo "Total backup size: $(du -sh "$BASE_DIR" 2>/dev/null | cut -f1 || echo "unknown")"
         echo "Available space: $(df -h "$BASE_DIR" 2>/dev/null | awk 'NR==2 {print $4}' || echo "unknown")"
         echo ""
-        echo "==============================================="
+        echo "=================================================="
         echo "Report generated at: $(date)"
-        echo "==============================================="
+        echo "=================================================="
     } > "$summary_file"
     
     print_success "Summary report created: $summary_file"
@@ -610,7 +610,7 @@ main() {
             if [[ -f "$file" ]]; then
                 local basename entries file_size
                 basename=$(basename "$file" .json)
-                entries=$(jq '.data | length // 0' "$file" 2>/dev/null || echo "0")
+                entries=$(jq '.[-1].data | to_entries[] | select(.value | type == "array") | .value | length' "$file" 2>/dev/null | head -n1 || echo "0")
                 file_size=$(du -sh "$file" 2>/dev/null | cut -f1 || echo "unknown")
                 print_info "  • $basename: $entries entries ($file_size)"
             fi
