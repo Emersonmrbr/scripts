@@ -4,7 +4,7 @@
 SCRIPT_DIR="/usr/etc"
 
 # List of scripts to be executed
-SCRIPTS=("${SCRIPT_DIR}/github-cron-wrapper.sh" "${SCRIPT_DIR}/paymos-cron-wrapper.sh")
+SCRIPTS=("${SCRIPT_DIR}/github-cron-wrapper.sh" "${SCRIPT_DIR}/paymo-cron-wrapper.sh")
 
 # Loop to execute each script in the list
 for script in "${SCRIPTS[@]}"; do
