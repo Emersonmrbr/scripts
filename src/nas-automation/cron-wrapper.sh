@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Directory where the scripts to be executed are located
-SCRIPT_DIR="/usr/etc"
+SCRIPT_DIR="/volume1/scripts"
 
 # List of scripts to be executed
 SCRIPTS=("${SCRIPT_DIR}/github-cron-wrapper.sh" "${SCRIPT_DIR}/paymo-cron-wrapper.sh")
