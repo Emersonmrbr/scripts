@@ -4,7 +4,7 @@
 SCRIPT_DIR="/volume1/scripts"
 
 # List of scripts to be executed
-SCRIPTS=("${SCRIPT_DIR}/github-cron-wrapper.sh" "${SCRIPT_DIR}/paymo-cron-wrapper.sh")
+SCRIPTS=(ls ${SCRIPT_DIR}/*-cron-wrapper.sh)
 
 # Loop to execute each script in the list
 for script in "${SCRIPTS[@]}"; do
@@ -19,4 +19,4 @@ for script in "${SCRIPTS[@]}"; do
         echo "Error executing $script (exit code: $EXIT_CODE)"
         continue 1
     fi
-    done
+done
