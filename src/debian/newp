@@ -55,7 +55,7 @@ print_debug() {
 #------------------------------------------------------------------------------
 
 folder_name() {
-  if [ "$NAME" == "" ]; then
+  if [ -z "$NAME" ]; then
     cp -r ~/.local/lib/.newp/"${1}" ./"New Folder"/
     echo "No folder name provided. Files copied to 'New Folder'."
   else
