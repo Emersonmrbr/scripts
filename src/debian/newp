@@ -105,6 +105,9 @@ main() {
     # Script header
     print_info "================================================"
     print_info "NEW PLUS v1.0.0 - STARTING EXECUTION"
+    print_info "DEVELOPER: EMERSON MARTINS BRITO"
+    print_info "VERSION: 1.0.0"
+    print_info "DEVELOPER DATE: 2026-04-19"
     print_info "================================================"
     print_info "Timestamp: $DATE"
 

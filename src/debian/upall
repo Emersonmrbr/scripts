@@ -1,0 +1,20 @@
+#! /bin/bash
+
+#==============================================================================
+# Update and Upgrade Script
+# Description: This script updates and upgrades the system using apt package manager.
+echo "=============================================="
+echo "System Update and Upgrade Script"
+echo "Author: Emerson Martins Brito"
+echo "Version: 1.0.0"
+echo "=============================================="
+echo "Starting system update and upgrade process..."
+echo "Updating and upgrading the system..."
+echo "This may take a few minutes. Please wait..."
+echo ""
+sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && sudo apt autoclean -y
+echo ""
+echo "=============================================="
+echo "System update and upgrade process completed."
+echo "System update and upgrade completed successfully."
+echo "=============================================="
