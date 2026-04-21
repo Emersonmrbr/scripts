@@ -4,8 +4,8 @@
 # Configuration - EDIT THESE VARIABLES
 
 GITHUB_USERNAME="Emersonmrbr"   # Replace with your GitHub username
-GITHUB_TOKEN=""           # GitHub personal access token
-BASE_DIR="/volume1/GithubBackup"         # Directory where repos will be cloned
+readonly GITHUB_TOKEN="${GITHUB_TOKEN:-$(cat /home/Emerson/.github_token 2>/dev/null | tr -d '\n' || echo '')}" # GitHub personal access token
+BASE_DIR="/volume1/Backup/Github"         # Directory where repos will be cloned
 INCLUDE_FORKS=false                      # true to include forks, false to exclude
 LOG_FILE="/var/log/github-clone.log"     # Log file
 
