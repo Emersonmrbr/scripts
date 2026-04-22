@@ -6,16 +6,60 @@
 echo "=============================================="
 echo "System Update and Upgrade Script"
 echo "Author: Emerson Martins Brito"
-echo "Version: 1.0.0"
+echo "Version: 1.1.0"
 echo "Timestamp: $(date +"%Y-%m-%d %H:%M:%S")"
 echo "=============================================="
 echo "Starting system update and upgrade process..."
 echo "Updating and upgrading the system..."
 echo "This may take a few minutes. Please wait..."
 echo ""
-sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && sudo apt autoclean -y
-echo ""
-echo "=============================================="
-echo "System update and upgrade completed successfully."
-echo "=============================================="
-echo ""
+
+if [ -z "$1" ]; then
+    # No options provided, perform full update and upgrade
+    sudo apt-get update --yes
+    sudo apt-get upgrade --yes
+    sudo apt-get autoremove --yes
+    sudo apt-get autoclean --yes
+    echo "Update and upgrade completed successfully."
+    exit 0
+fi
+
+case "$1" in
+    --help| -h)
+        echo "Usage: $0 [options]"
+        echo "Options:"
+        echo "  --help, -h    Display this help message"
+        echo "  --version, -v Display version information"
+        echo "  --all, -a     Update and upgrade the system, is default if no options are provided"
+        echo "  --update, -u   Update the package lists only"
+        echo "  --upgrade, -g  Upgrade the installed packages only"
+        exit 0
+        ;;
+    --version| -v)
+        echo "Version: 1.1.0"
+        exit 0
+        ;;
+    --all| -a)
+      sudo apt-get update --yes
+      sudo apt-get upgrade --yes
+      sudo apt-get autoremove --yes
+      sudo apt-get autoclean --yes
+      echo "Update and upgrade completed successfully."
+      exit 0
+        ;;
+    --update| -u)
+        sudo apt-get update --yes
+        echo "Package lists updated successfully."
+        exit 0
+        ;;
+    --upgrade| -g)
+        sudo apt-get upgrade --yes
+        echo "Packages upgraded successfully."
+        exit 0
+        ;;
+    *)
+        echo "Invalid option: $1"
+        echo "Use --help or -h for usage information."
+        exit 1
+        ;;
+esac
