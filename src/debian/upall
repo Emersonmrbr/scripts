@@ -1,5 +1,12 @@
 #! /bin/bash
 
+#==============================================================================
+# Update and Upgrade Script
+# Description: This script updates and upgrades the system using apt package manager.
+# Author: Emerson Martins Brito
+# Version: 1.1.0
+#==============================================================================
+
 DATE=$(date +"%Y-%m-%d %H:%M:%S")
 
 #==============================================================================
