@@ -13,14 +13,14 @@
 
 # GitHub API Configuration
 GITHUB_USERNAME="Emersonmrbr"
-readonly GITHUB_TOKEN=$(grep GITHUB_TOKEN ./secrets.env | cut -d '=' -f2) || {
-    print_error "GITHUB_TOKEN not found. Please set environment variable or create ./secrets.env"
+readonly GITHUB_TOKEN=$(grep GITHUB_TOKEN ~/.secrets.env | cut -d '=' -f2) || {
+    print_error "GITHUB_TOKEN not found. Please set environment variable or create ~/.secrets.env"
     print_info "Get your API key at: https://github.com/settings/tokens"
     exit 1
 }
 # Backup Configuration
-BASE_DIR="/volume1/Backup/Github"
-INCLUDE_FORKS=false
+    BASE_DIR="/volume1/Backup/Github"
+    INCLUDE_FORKS=false
 LOG_FILE="/var/log/github-clone.log"
 
 #------------------------------------------------------------------------------

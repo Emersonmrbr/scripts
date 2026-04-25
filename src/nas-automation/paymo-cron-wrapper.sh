@@ -4,7 +4,7 @@
 # File: paymo-cron-wrapper.sh
 
 # Configuration - EDIT AS NEEDED
-SCRIPT_PATH="/volume1/scripts/paymo-backup.sh"
+SCRIPT_PATH="/volume1/scripts/src/nas-automation/paymo-backup.sh"
 LOG_FILE="/var/log/paymo-cron.log"
 LOCK_FILE="/tmp/paymo-backup.lock"
 MAX_LOG_SIZE="10M"  # Maximum log size

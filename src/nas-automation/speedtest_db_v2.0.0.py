@@ -12,6 +12,7 @@ import os
 load_dotenv()
 
 def validar_env():
+    load_dotenv(os.path.expanduser("~/.secrets.env"))
     obrigatorias = ["DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME"]
     faltando = [v for v in obrigatorias if not os.getenv(v)]
 

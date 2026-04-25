@@ -4,7 +4,7 @@
 # File: github-cron-wrapper.sh
 
 # Configuration - EDIT AS NEEDED
-SCRIPT_PATH="/volume1/scripts/github-backup.sh"
+SCRIPT_PATH="/volume1/scripts/src/nas-automation/github-backup.sh"
 LOG_FILE="/var/log/github-cron.log"
 LOCK_FILE="/tmp/github-clone.lock"
 MAX_LOG_SIZE="10M"  # Maximum log size

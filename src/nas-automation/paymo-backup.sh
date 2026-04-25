@@ -14,8 +14,8 @@ set -uo pipefail  # Exit on undefined variables and pipe failures (but continue 
 #------------------------------------------------------------------------------
 
 # Paymo API Configuration
-readonly PAYMO_TOKEN=$(grep PAYMO_TOKEN ./secrets.env | cut -d '=' -f2) || {
-    print_error "PAYMO_TOKEN not found. Please set environment variable or create /home/Emerson/.paymo_token"
+readonly PAYMO_TOKEN=$(grep PAYMO_TOKEN ~/.secrets.env | cut -d '=' -f2) || {
+    print_error "PAYMO_TOKEN not found. Please set environment variable or create ~/.secrets.env"
     print_info "Get your API key at: https://app.paymoapp.com -> Settings -> API & Integrations"
     exit 1
 }
@@ -112,7 +112,7 @@ validate_configuration() {
     
     # Check API token
     if [[ -z "$PAYMO_TOKEN" ]]; then
-        print_error "PAYMO_TOKEN not found. Please set environment variable or create /home/Emerson/.paymo_token"
+        print_error "PAYMO_TOKEN not found. Please set environment variable or create ~/.secrets.env"
         print_info "Get your API key at: https://app.paymoapp.com -> Settings -> API & Integrations"
         return 1
     fi
