@@ -14,7 +14,11 @@ set -uo pipefail  # Exit on undefined variables and pipe failures (but continue 
 #------------------------------------------------------------------------------
 
 # Paymo API Configuration
-readonly PAYMO_TOKEN="${PAYMO_TOKEN:-$(cat /home/Emerson/.paymo_token 2>/dev/null | tr -d '\n' || echo '')}"
+readonly PAYMO_TOKEN=$(grep PAYMO_TOKEN ./secrets.env | cut -d '=' -f2) || {
+    print_error "PAYMO_TOKEN not found. Please set environment variable or create /home/Emerson/.paymo_token"
+    print_info "Get your API key at: https://app.paymoapp.com -> Settings -> API & Integrations"
+    exit 1
+}
 readonly PAYMO_EMAIL="${PAYMO_EMAIL:-emersonm@nucleomap.com.br}"
 readonly PAYMO_API_BASE="https://app.paymoapp.com/api"
 

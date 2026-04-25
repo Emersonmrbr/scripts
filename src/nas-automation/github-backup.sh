@@ -1,15 +1,33 @@
 #!/bin/bash
 
-# Script to clone all GitHub repositories
-# Configuration - EDIT THESE VARIABLES
+#==============================================================================
+# GitHub Data Backup Script for ASUSTOR NAS
+# Description: Automated backup solution for GitHub repositories
+# Author: Refactored version
+# Version: 2.0
+#==============================================================================
 
-GITHUB_USERNAME="Emersonmrbr"   # Replace with your GitHub username
-readonly GITHUB_TOKEN="${GITHUB_TOKEN:-$(cat /home/Emerson/.github_token 2>/dev/null | tr -d '\n' || echo '')}" # GitHub personal access token
-BASE_DIR="/volume1/Backup/Github"         # Directory where repos will be cloned
-INCLUDE_FORKS=false                      # true to include forks, false to exclude
-LOG_FILE="/var/log/github-clone.log"     # Log file
+#------------------------------------------------------------------------------
+# CONFIGURATION SECTION
+#------------------------------------------------------------------------------
 
-# Colors for output
+# GitHub API Configuration
+GITHUB_USERNAME="Emersonmrbr"
+readonly GITHUB_TOKEN=$(grep GITHUB_TOKEN ./secrets.env | cut -d '=' -f2) || {
+    print_error "GITHUB_TOKEN not found. Please set environment variable or create ./secrets.env"
+    print_info "Get your API key at: https://github.com/settings/tokens"
+    exit 1
+}
+# Backup Configuration
+BASE_DIR="/volume1/Backup/Github"
+INCLUDE_FORKS=false
+LOG_FILE="/var/log/github-clone.log"
+
+#------------------------------------------------------------------------------
+# COLORS AND OUTPUT FUNCTIONS
+#------------------------------------------------------------------------------
+
+# Color definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
