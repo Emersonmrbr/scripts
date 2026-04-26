@@ -5,7 +5,7 @@
 
 # Configuration - EDIT AS NEEDED
 SCRIPT_PATH="/volume1/scripts/src/nas-automation/github-backup.sh"
-LOG_FILE="/var/log/github-cron.log"
+LOG_FILE="/volume1/logs/github-cron.log"
 LOCK_FILE="/tmp/github-clone.lock"
 MAX_LOG_SIZE="10M"  # Maximum log size
 NOTIFICATION_EMAIL="emersonmrbr@gmail.com"  # Email for notifications (optional)

@@ -24,7 +24,7 @@ readonly PAYMO_API_BASE="https://app.paymoapp.com/api"
 
 # Backup Configuration
 readonly BASE_DIR="${BASE_DIR:-/volume1/Backup/Paymo}"
-readonly LOG_FILE="${LOG_FILE:-/var/log/paymo-backup.log}"
+readonly LOG_FILE="${LOG_FILE:-/volume1/logs/paymo-backup.log}"
 readonly RATE_LIMIT_SECONDS="${RATE_LIMIT_SECONDS:-1}"
 readonly LOG_RETENTION_DAYS=90
 readonly SUMMARY_RETENTION_DAYS=5

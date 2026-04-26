@@ -5,7 +5,7 @@
 
 # Configuration - EDIT AS NEEDED
 SCRIPT_PATH="/volume1/scripts/src/nas-automation/paymo-backup.sh"
-LOG_FILE="/var/log/paymo-cron.log"
+LOG_FILE="/volume1/logs/paymo-cron.log"
 LOCK_FILE="/tmp/paymo-backup.lock"
 MAX_LOG_SIZE="10M"  # Maximum log size
 NOTIFICATION_EMAIL="emersonmrbr@gmail.com"  # Email for notifications (optional)

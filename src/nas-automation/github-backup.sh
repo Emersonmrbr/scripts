@@ -21,7 +21,7 @@ readonly GITHUB_TOKEN=$(grep GITHUB_TOKEN ~/.secrets.env | cut -d '=' -f2) || {
 # Backup Configuration
     BASE_DIR="/volume1/Backup/Github"
     INCLUDE_FORKS=false
-LOG_FILE="/var/log/github-clone.log"
+LOG_FILE="/volume1/logs/github-clone.log"
 
 #------------------------------------------------------------------------------
 # COLORS AND OUTPUT FUNCTIONS
