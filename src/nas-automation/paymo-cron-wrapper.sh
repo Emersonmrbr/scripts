@@ -29,7 +29,8 @@ fi
 log() {
     local level="$1"
     local message="$2"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
     echo "[$timestamp] [$level] [PID:$$] $message" >> "$LOG_FILE"
     
@@ -57,9 +58,11 @@ send_notification() {
 
 # Function to check log size and rotate if necessary
 rotate_log() {
+    local log_size
+    local max_size
     if [ -f "$LOG_FILE" ]; then
-        local log_size=$(du -m "$LOG_FILE" 2>/dev/null | cut -f1 || echo "0")
-        local max_size=$(echo "$MAX_LOG_SIZE" | sed 's/M//')
+        log_size=$(du -m "$LOG_FILE" 2>/dev/null | cut -f1 || echo "0")
+        max_size="${MAX_LOG_SIZE//M/}"
         
         if [ "$log_size" -gt "$max_size" ]; then
             log "INFO" "Rotating log (size: ${log_size}M > ${max_size}M)"
@@ -85,16 +88,28 @@ cleanup_old_logs() {
 # Function to check API connectivity
 check_connectivity() {
     log "INFO" "Checking internet connectivity..."
-    
-    if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
-        log "ERROR" "No internet connectivity"
+
+    # ICMP (ping) is often blocked on NAS/firewall environments.
+    # Validate connectivity using HTTPS reachability instead.
+    local http_code
+    http_code=$(curl -sS -L \
+        --connect-timeout 10 \
+        --max-time 20 \
+        -o /dev/null \
+        -w "%{http_code}" \
+        "https://app.paymoapp.com") || {
+        log "ERROR" "Cannot reach Paymo servers over HTTPS"
         return 1
-    fi
-    
-    if ! curl -s --connect-timeout 10 "https://app.paymoapp.com" >/dev/null; then
-        log "ERROR" "Cannot reach Paymo servers"
-        return 1
-    fi
+    }
+
+    case "$http_code" in
+        2*|3*|401|403)
+            ;;
+        *)
+            log "ERROR" "Paymo HTTPS check failed (HTTP: $http_code)"
+            return 1
+            ;;
+    esac
     
     log "INFO" "Connectivity check passed"
     return 0
@@ -103,6 +118,8 @@ check_connectivity() {
 # Function to check prerequisites
 check_prerequisites() {
     local errors=0
+    local log_dir
+    local free_space
     
     log "INFO" "Checking prerequisites..."
     
@@ -120,7 +137,7 @@ check_prerequisites() {
     fi
     
     # Check if log directory exists
-    local log_dir=$(dirname "$LOG_FILE")
+    log_dir=$(dirname "$LOG_FILE")
     if [ ! -d "$log_dir" ]; then
         log "WARNING" "Log directory does not exist: $log_dir"
         if mkdir -p "$log_dir" 2>/dev/null; then
@@ -148,7 +165,7 @@ check_prerequisites() {
     # Check disk space (warn if less than 1GB free)
     local backup_dir="/volume1/Backup/Paymo"
     if [ -d "$backup_dir" ]; then
-        local free_space=$(df -BG "$backup_dir" | awk 'NR==2 {print $4}' | sed 's/G//')
+        free_space=$(df -BG "$backup_dir" | awk 'NR==2 {print $4}' | sed 's/G//')
         if [ "$free_space" -lt 1 ]; then
             log "WARNING" "Low disk space: ${free_space}GB free in backup directory"
         else
@@ -161,8 +178,9 @@ check_prerequisites() {
 
 # Function to check if already running
 check_lock() {
+    local lock_pid=
     if [ -f "$LOCK_FILE" ]; then
-        local lock_pid=$(cat "$LOCK_FILE" 2>/dev/null)
+        lock_pid=$(cat "$LOCK_FILE" 2>/dev/null)
         
         # Check if process still exists
         if [ ! -z "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
@@ -179,8 +197,7 @@ check_lock() {
 
 # Function to create lock
 create_lock() {
-    echo $$ > "$LOCK_FILE"
-    if [ $? -eq 0 ]; then
+    if echo $$ > "$LOCK_FILE"; then
         log "INFO" "Lock file created (PID: $$)"
         return 0
     else
@@ -208,18 +225,23 @@ cleanup_on_signal() {
 get_backup_stats() {
     local dir="/volume1/Backup/Paymo"
     local stats_msg=""
+    local total_files
+    local total_size
+    local largest_file
+    local entries
+    local basename
     
     if [ -d "$dir" ]; then
-        local total_files=$(find "$dir" -name "*.json" -type f | wc -l)
-        local total_size=$(du -sh "$dir" 2>/dev/null | cut -f1 || echo "unknown")
+        total_files=$(find "$dir" -name "*.json" -type f | wc -l)
+        total_size=$(du -sh "$dir" 2>/dev/null | cut -f1 || echo "unknown")
         
         stats_msg="Files: $total_files | Total size: $total_size"
         
         # Count entries in largest file as example
-        local largest_file=$(find "$dir" -name "*.json" -type f -exec ls -la {} + 2>/dev/null | sort -k5 -nr | head -1 | awk '{print $9}')
+        largest_file=$(find "$dir" -name "*.json" -type f -exec ls -la {} + 2>/dev/null | sort -k5 -nr | head -1 | awk '{print $9}')
         if [ ! -z "$largest_file" ] && [ -f "$largest_file" ]; then
-            local entries=$(jq '.[-1].data | to_entries[] | select(.value | type == "array") | .value | length' "$largest_file" 2>/dev/null | head -n1 || echo "0")
-            local basename=$(basename "$largest_file" .json)
+            entries=$(jq '.[-1].data | to_entries[] | select(.value | type == "array") | .value | length' "$largest_file" 2>/dev/null | head -n1 || echo "0")
+            basename=$(basename "$largest_file" .json)
             stats_msg="$stats_msg | Example: $basename has $entries entries"
         fi
     else
@@ -231,7 +253,13 @@ get_backup_stats() {
 
 # Main function
 main() {
-    local start_time=$(date +%s)
+    local start_time
+    local pre_stats
+    local end_time
+    local duration
+    local day_of_week
+
+    start_time=$(date +%s)
     
     log "INFO" "=== STARTING PAYMO BACKUP (via CRON) ==="
     log "INFO" "Script: $SCRIPT_PATH"
@@ -270,46 +298,46 @@ main() {
     trap cleanup_on_signal INT TERM
     
     # Get pre-backup stats
-    local pre_stats=$(get_backup_stats)
+    pre_stats=$(get_backup_stats)
     log "INFO" "Pre-backup stats: $pre_stats"
     
     # Execute main script
     log "INFO" "Executing Paymo backup script..."
     
     if "$SCRIPT_PATH" >> "$LOG_FILE" 2>&1; then
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
         
         # Get post-backup stats
-        local post_stats=$(get_backup_stats)
+        post_stats=$(get_backup_stats)
         
         log "SUCCESS" "Paymo backup completed successfully (duration: ${duration}s)"
         log "INFO" "Post-backup stats: $post_stats"
         
         # Success notification (only send weekly to avoid spam)
-        local day_of_week=$(date +%u)  # 1-7, Monday is 1
+        day_of_week=$(date +%u)  # 1-7, Monday is 1
         if [ "$day_of_week" = "1" ] && [ ! -z "$NOTIFICATION_EMAIL" ]; then
             local notification_msg="Paymo backup completed successfully.
-Duration: ${duration} seconds
-$post_stats
+                Duration: ${duration} seconds
+                $post_stats
 
-Weekly status: All incremental backups are working properly."
+                Weekly status: All incremental backups are working properly."
             send_notification "Paymo Backup - Weekly Status" "$notification_msg"
         fi
         
         exit_code=0
     else
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
         
         log "ERROR" "Paymo backup failed (duration: ${duration}s)"
         
         # Error notification (always send)
         local error_msg="Paymo backup failed after ${duration} seconds.
-Check logs at: $LOG_FILE
-Pre-backup stats: $pre_stats
+            Check logs at: $LOG_FILE
+            Pre-backup stats: $pre_stats
 
-Please investigate the issue."
+            Please investigate the issue."
         send_notification "Paymo Backup - ERROR" "$error_msg"
         
         exit_code=1
