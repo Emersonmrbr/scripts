@@ -8,20 +8,26 @@
 #==============================================================================
 
 #------------------------------------------------------------------------------
+# VARIABLES
+#------------------------------------------------------------------------------
+
+readonly GITHUB_TOKEN=""
+
+#------------------------------------------------------------------------------
 # CONFIGURATION SECTION
 #------------------------------------------------------------------------------
 
 # GitHub API Configuration
-GITHUB_USERNAME="Emersonmrbr"
-readonly GITHUB_TOKEN=$(grep GITHUB_TOKEN ~/.secrets.env | cut -d '=' -f2) || {
+readonly GITHUB_USERNAME="Emersonmrbr"
+GITHUB_TOKEN=$(grep GITHUB_TOKEN ~/.secrets.env | cut -d '=' -f2) || {
     print_error "GITHUB_TOKEN not found. Please set environment variable or create ~/.secrets.env"
     print_info "Get your API key at: https://github.com/settings/tokens"
     exit 1
 }
 # Backup Configuration
-    BASE_DIR="/volume1/Backup/Github"
-    INCLUDE_FORKS=false
-LOG_FILE="/volume1/logs/github-clone.log"
+readonly BASE_DIR="/volume1/Backup/Github"
+readonly INCLUDE_FORKS=false
+readonly LOG_FILE="/volume1/logs/github-clone.log"
 
 #------------------------------------------------------------------------------
 # COLORS AND OUTPUT FUNCTIONS
@@ -32,7 +38,6 @@ readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
-readonly CYAN='\033[0;36m'
 readonly NC='\033[0m' # No color
 
 # Logging function
@@ -112,8 +117,8 @@ create_base_directory() {
     print_status "Creating base directory: $BASE_DIR"
     
     if [ ! -d "$BASE_DIR" ]; then
-        mkdir -p "$BASE_DIR"
-        if [ $? -eq 0 ]; then
+        
+        if mkdir -p "$BASE_DIR"; then
             print_success "Directory created: $BASE_DIR"
         else
             print_error "Failed to create directory: $BASE_DIR"
@@ -131,24 +136,27 @@ get_repositories() {
     local page=1
     local per_page=100
     local all_repos=()
+    local response
+    local error_message
+    local repos_page
     
     while true; do
         local url="https://api.github.com/user/repos?page=$page&per_page=$per_page&type=all"
-        local response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$url")
         
-        if [ $? -ne 0 ]; then
+        
+        if ! response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$url"); then
             print_error "Failed to connect to GitHub API"
             exit 1
         fi
         
         # Check for API error
-        local error_message=$(echo "$response" | jq -r '.message // empty')
+        error_message=$(echo "$response" | jq -r '.message // empty')
         if [ ! -z "$error_message" ]; then
             print_error "GitHub API error: $error_message"
             exit 1
         fi
         
-        local repos_page=$(echo "$response" | jq -r '.[] | select(.archived == false) | "\(.name)|\(.clone_url)|\(.fork)"')
+        repos_page=$(echo "$response" | jq -r '.[] | select(.archived == false) | "\(.name)|\(.clone_url)|\(.fork)"')
         
         if [ -z "$repos_page" ]; then
             break
@@ -172,6 +180,7 @@ clone_repository() {
     local clone_url="$2"
     local is_fork="$3"
     local repo_dir="$BASE_DIR/$repo_name"
+    local auth_url
     
     # Check if should include forks
     if [ "$is_fork" = "true" ] && [ "$INCLUDE_FORKS" = "false" ]; then
@@ -183,7 +192,7 @@ clone_repository() {
     
     if [ -d "$repo_dir" ]; then
         print_status "Repository already exists. Updating: $repo_name"
-        cd "$repo_dir"
+        cd "$repo_dir" || exit
         
         if git reset --hard origin/main 2>/dev/null || git reset --hard origin/master 2>/dev/null; then
             print_success "Updated: $repo_name"
@@ -193,8 +202,8 @@ clone_repository() {
     else
         print_status "Cloning: $repo_name"
         
-        # Modify URL to include token
-        local auth_url=$(echo "$clone_url" | sed "s|https://|https://$GITHUB_USERNAME:$GITHUB_TOKEN@|")
+        #auth_url=$(echo "${clone_url}" | sed "s|https://|https://$GITHUB_USERNAME:$GITHUB_TOKEN@|")
+        auth_url="https://$GITHUB_USERNAME:$GITHUB_TOKEN@${clone_url#https://}"
         
         if git clone "$auth_url" "$repo_dir"; then
             print_success "Cloned: $repo_name"
@@ -219,7 +228,8 @@ main() {
     
     # Get repositories
     print_status "Searching repositories..."
-    local repositories=($(get_repositories))
+    #local repositories=($(get_repositories))
+    mapfile -t repositories < <(get_repositories)
     
     if [ ${#repositories[@]} -eq 0 ]; then
         print_warning "No repositories found"
@@ -235,9 +245,7 @@ main() {
     for repo_info in "${repositories[@]}"; do
         IFS='|' read -r repo_name clone_url is_fork <<< "$repo_info"
         
-        clone_repository "$repo_name" "$clone_url" "$is_fork"
-        
-        if [ $? -eq 0 ]; then
+        if clone_repository "$repo_name" "$clone_url" "$is_fork"; then
             cloned=$((cloned + 1))
         else
             failed=$((failed + 1))
