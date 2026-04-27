@@ -115,6 +115,45 @@ check_connectivity() {
     return 0
 }
 
+# Function to validate Paymo API credentials
+validate_paymo_credentials() {
+    log "INFO" "Validating Paymo API credentials..."
+    
+    local paymo_token
+    paymo_token=$(grep '^PAYMO_TOKEN=' ~/.secrets.env 2>/dev/null | cut -d '=' -f2-)
+    
+    if [ -z "$paymo_token" ]; then
+        log "WARNING" "PAYMO_TOKEN not configured. Skipping Paymo backup."
+        return 2  # Skip code
+    fi
+    
+    local http_code
+    http_code=$(curl -sS --connect-timeout 10 \
+        -o /dev/null \
+        -w "%{http_code}" \
+        -u "$paymo_token:random" \
+        -H "Accept: application/json" \
+        "https://app.paymoapp.com/api/me") || {
+        log "ERROR" "Failed to reach Paymo API"
+        return 1
+    }
+    
+    case "$http_code" in
+        200)
+            log "INFO" "Paymo credentials validated"
+            return 0
+            ;;
+        401)
+            log "WARNING" "Paymo API authentication failed (HTTP 401). Subscription may be inactive or token expired. Skipping Paymo backup."
+            return 2  # Skip code
+            ;;
+        *)
+            log "WARNING" "Paymo API returned HTTP $http_code. Attempting backup anyway."
+            return 0
+            ;;
+    esac
+}
+
 # Function to check prerequisites
 check_prerequisites() {
     local errors=0
@@ -282,6 +321,14 @@ main() {
         log "ERROR" "Prerequisites not met. Aborting."
         send_notification "Paymo Backup - Configuration Error" "Prerequisites not met. Check logs at $LOG_FILE"
         exit 1
+    fi
+    
+    # Validate Paymo credentials (skip if auth fails)
+    validate_paymo_credentials
+    local cred_status=$?
+    if [ $cred_status -eq 2 ]; then
+        log "INFO" "Paymo backup skipped (credentials invalid or not configured)"
+        exit 0
     fi
     
     # Check lock
