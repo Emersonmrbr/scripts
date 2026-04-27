@@ -147,6 +147,10 @@ validate_paymo_credentials() {
             log "WARNING" "Paymo API authentication failed (HTTP 401). Subscription may be inactive or token expired. Skipping Paymo backup."
             return 2  # Skip code
             ;;
+        402)
+            log "WARNING" "Paymo API returned HTTP 402 (Payment Required). Subscription may be expired or suspended. Skipping Paymo backup."
+            return 2  # Skip code
+            ;;
         *)
             log "WARNING" "Paymo API returned HTTP $http_code. Attempting backup anyway."
             return 0
