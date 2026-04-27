@@ -8,7 +8,7 @@ SCRIPT_PATH="/volume1/scripts/src/nas-automation/github-backup.sh"
 LOG_FILE="/volume1/logs/github-cron.log"
 LOCK_FILE="/tmp/github-clone.lock"
 MAX_LOG_SIZE="10M"  # Maximum log size
-NOTIFICATION_EMAIL="emersonmrbr@gmail.com"  # Email for notifications (optional)
+NOTIFICATION_EMAIL=""  # Email for notifications (optional, leave empty to disable)
 
 # Colors for logs (removed in cron, but useful for manual testing)
 if [ -t 1 ]; then
@@ -29,7 +29,8 @@ fi
 log() {
     local level="$1"
     local message="$2"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
     echo "[$timestamp] [$level] [PID:$$] $message" >> "$LOG_FILE"
     
@@ -57,9 +58,11 @@ send_notification() {
 
 # Function to check log size and rotate if necessary
 rotate_log() {
+    local log_size=
+    local max_size=
     if [ -f "$LOG_FILE" ]; then
-        local log_size=$(du -m "$LOG_FILE" | cut -f1)
-        local max_size=$(echo "$MAX_LOG_SIZE" | sed 's/M//')
+        log_size=$(du -m "$LOG_FILE" | cut -f1)
+        max_size=$(echo "$MAX_LOG_SIZE" | sed 's/M//')
         
         if [ "$log_size" -gt "$max_size" ]; then
             log "INFO" "Rotating log (size: ${log_size}M > ${max_size}M)"
@@ -85,6 +88,7 @@ cleanup_old_logs() {
 # Function to check prerequisites
 check_prerequisites() {
     local errors=0
+    local log_dir
     
     # Check if main script exists
     if [ ! -f "$SCRIPT_PATH" ]; then
@@ -100,7 +104,7 @@ check_prerequisites() {
     fi
     
     # Check if log directory exists
-    local log_dir=$(dirname "$LOG_FILE")
+    log_dir=$(dirname "$LOG_FILE")
     if [ ! -d "$log_dir" ]; then
         log "WARNING" "Log directory does not exist: $log_dir"
         if mkdir -p "$log_dir" 2>/dev/null; then
@@ -116,8 +120,9 @@ check_prerequisites() {
 
 # Function to check if already running
 check_lock() {
+    local lock_pid
     if [ -f "$LOCK_FILE" ]; then
-        local lock_pid=$(cat "$LOCK_FILE" 2>/dev/null)
+        lock_pid=$(cat "$LOCK_FILE" 2>/dev/null)
         
         # Check if process still exists
         if [ ! -z "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
@@ -133,9 +138,8 @@ check_lock() {
 }
 
 # Function to create lock
-create_lock() {
-    echo $$ > "$LOCK_FILE"
-    if [ $? -eq 0 ]; then
+create_lock() {    
+    if echo $$ > "$LOCK_FILE"; then
         log "INFO" "Lock file created (PID: $$)"
         return 0
     else
@@ -161,7 +165,10 @@ cleanup_on_signal() {
 
 # Main function
 main() {
-    local start_time=$(date +%s)
+    local start_time
+    local end_time
+    local duration
+    start_time=$(date +%s)
     
     log "INFO" "=== STARTING GITHUB SYNC (via CRON) ==="
     log "INFO" "Script: $SCRIPT_PATH"
@@ -195,8 +202,8 @@ main() {
     log "INFO" "Executing main script..."
     
     if "$SCRIPT_PATH" >> "$LOG_FILE" 2>&1; then
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
         
         log "SUCCESS" "Sync completed successfully (duration: ${duration}s)"
         
@@ -207,8 +214,8 @@ main() {
         
         exit_code=0
     else
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
         
         log "ERROR" "Sync error (duration: ${duration}s)"
         
