@@ -181,6 +181,8 @@ clone_repository() {
     local is_fork="$3"
     local repo_dir="$BASE_DIR/$repo_name"
     local auth_url
+    local target_branch
+    local git_output
     
     # Check if should include forks
     if [ "$is_fork" = "true" ] && [ "$INCLUDE_FORKS" = "false" ]; then
@@ -192,12 +194,41 @@ clone_repository() {
     
     if [ -d "$repo_dir" ]; then
         print_status "Repository already exists. Updating: $repo_name"
-        cd "$repo_dir" || exit
-        
-        if git reset --hard origin/main 2>/dev/null || git reset --hard origin/master 2>/dev/null; then
+
+        if ! git -C "$repo_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            print_warning "Directory exists but is not a git repository: $repo_name"
+            return 1
+        fi
+
+        auth_url="https://x-access-token:$GITHUB_TOKEN@${clone_url#https://}"
+        git -C "$repo_dir" remote set-url origin "$auth_url" >/dev/null 2>&1
+
+        if ! git_output=$(git -C "$repo_dir" fetch --prune origin 2>&1); then
+            print_warning "Failed to fetch: $repo_name"
+            print_warning "$git_output"
+            return 1
+        fi
+
+        target_branch=$(git -C "$repo_dir" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+        target_branch="${target_branch#origin/}"
+
+        if [ -z "$target_branch" ]; then
+            if git -C "$repo_dir" show-ref --verify --quiet refs/remotes/origin/main; then
+                target_branch="main"
+            elif git -C "$repo_dir" show-ref --verify --quiet refs/remotes/origin/master; then
+                target_branch="master"
+            else
+                print_warning "Could not determine remote default branch: $repo_name"
+                return 1
+            fi
+        fi
+
+        if git_output=$(git -C "$repo_dir" reset --hard "origin/$target_branch" 2>&1); then
             print_success "Updated: $repo_name"
         else
             print_warning "Failed to update: $repo_name"
+            print_warning "$git_output"
+            return 1
         fi
     else
         print_status "Cloning: $repo_name"
@@ -208,8 +239,11 @@ clone_repository() {
             print_success "Cloned: $repo_name"
         else
             print_error "Failed to clone: $repo_name"
+            return 1
         fi
     fi
+
+    return 0
 }
 
 # Main function
