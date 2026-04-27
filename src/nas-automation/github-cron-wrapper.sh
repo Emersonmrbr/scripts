@@ -78,11 +78,11 @@ rotate_log() {
 
 # Function to clean up old logs
 cleanup_old_logs() {
-    # Remove logs older than 30 days
-    find "$(dirname "$LOG_FILE")" -name "$(basename "$LOG_FILE").*" -mtime +30 -delete 2>/dev/null
-    
-    # Remove orphaned lock files (older than 1 day)
-    find "$(dirname "$LOCK_FILE")" -name "$(basename "$LOCK_FILE")*" -mtime +1 -delete 2>/dev/null
+    # Remove logs older than 30 days (limit to immediate directory only)
+    find "$(dirname "$LOG_FILE")" -maxdepth 1 -name "$(basename "$LOG_FILE").*" -mtime +30 -delete 2>/dev/null &
+
+    # Remove orphaned lock files older than 1 day (limit to immediate directory only)
+    find "$(dirname "$LOCK_FILE")" -maxdepth 1 -name "$(basename "$LOCK_FILE")*" -mtime +1 -delete 2>/dev/null &
 }
 
 # Function to check prerequisites
