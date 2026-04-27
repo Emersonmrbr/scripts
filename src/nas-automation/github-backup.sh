@@ -11,7 +11,7 @@
 # VARIABLES
 #------------------------------------------------------------------------------
 
-readonly GITHUB_TOKEN=""
+GITHUB_TOKEN=""
 
 #------------------------------------------------------------------------------
 # CONFIGURATION SECTION
@@ -19,7 +19,7 @@ readonly GITHUB_TOKEN=""
 
 # GitHub API Configuration
 readonly GITHUB_USERNAME="Emersonmrbr"
-GITHUB_TOKEN=$(grep GITHUB_TOKEN ~/.secrets.env | cut -d '=' -f2) || {
+GITHUB_TOKEN=$(grep '^GITHUB_TOKEN=' ~/.secrets.env | cut -d '=' -f2-) || {
     print_error "GITHUB_TOKEN not found. Please set environment variable or create ~/.secrets.env"
     print_info "Get your API key at: https://github.com/settings/tokens"
     exit 1
@@ -131,7 +131,7 @@ create_base_directory() {
 
 # Get repository list
 get_repositories() {
-    print_status "Getting repository list..."
+    print_status "Getting repository list..." >&2
     
     local page=1
     local per_page=100
@@ -171,7 +171,7 @@ get_repositories() {
         page=$((page + 1))
     done
     
-    echo "${all_repos[@]}"
+    printf '%s\n' "${all_repos[@]}"
 }
 
 # Clone a repository
@@ -202,8 +202,7 @@ clone_repository() {
     else
         print_status "Cloning: $repo_name"
         
-        #auth_url=$(echo "${clone_url}" | sed "s|https://|https://$GITHUB_USERNAME:$GITHUB_TOKEN@|")
-        auth_url="https://$GITHUB_USERNAME:$GITHUB_TOKEN@${clone_url#https://}"
+        auth_url="https://x-access-token:$GITHUB_TOKEN@${clone_url#https://}"
         
         if git clone "$auth_url" "$repo_dir"; then
             print_success "Cloned: $repo_name"
@@ -231,7 +230,7 @@ main() {
     #local repositories=($(get_repositories))
     mapfile -t repositories < <(get_repositories)
     for i in "${repositories[@]}"; do
-    echo "$i" >> /volume1/logs/repositore.txt
+        echo "$i" >> /volume1/logs/repositore.txt
     done
     
     if [ ${#repositories[@]} -eq 0 ]; then
