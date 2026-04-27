@@ -4,7 +4,7 @@
 SCRIPT_DIR="/volume1/scripts/src/nas-automation"
 
 # List of scripts to be executed
-SCRIPTS=(ls ${SCRIPT_DIR}/*-cron-wrapper.sh)
+SCRIPTS=("${SCRIPT_DIR}"/*-cron-wrapper.sh)
 
 # Loop to execute each script in the list
 for script in "${SCRIPTS[@]}"; do
