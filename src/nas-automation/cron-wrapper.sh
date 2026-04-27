@@ -9,7 +9,7 @@ SCRIPTS=("${SCRIPT_DIR}"/*-cron-wrapper.sh)
 # Loop to execute each script in the list
 for script in "${SCRIPTS[@]}"; do
     # Executes the script in the background
-    bash "$script" &
+    bash "$script" < /dev/null &
     PROCESS=$!
     # Waits for the background process to finish
     wait $PROCESS
@@ -17,6 +17,10 @@ for script in "${SCRIPTS[@]}"; do
     # Checks if there was an error during script execution
     if [ $EXIT_CODE -ne 0 ]; then
         echo "Error executing $script (exit code: $EXIT_CODE)"
-        continue 1
+        continue
     fi
 done
+
+# Ensure all background processes are terminated
+wait
+exit 0
