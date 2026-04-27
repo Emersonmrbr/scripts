@@ -230,6 +230,9 @@ main() {
     print_status "Searching repositories..."
     #local repositories=($(get_repositories))
     mapfile -t repositories < <(get_repositories)
+    for i in "${repositories[@]}"; do
+    echo "$i" >> /volume1/logs/repositore.txt
+    done
     
     if [ ${#repositories[@]} -eq 0 ]; then
         print_warning "No repositories found"
