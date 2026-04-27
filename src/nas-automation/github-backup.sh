@@ -150,13 +150,13 @@ get_repositories() {
         fi
         
         # Check for API error
-        error_message=$(echo "$response" | jq -r '.message // empty')
+        error_message=$(echo "$response" | jq -r 'if type == "object" then (.message // empty) else empty end')
         if [ ! -z "$error_message" ]; then
             print_error "GitHub API error: $error_message"
             exit 1
         fi
         
-        repos_page=$(echo "$response" | jq -r '.[] | select(.archived == false) | "\(.name)|\(.clone_url)|\(.fork)"')
+        repos_page=$(echo "$response" | jq -r 'if type == "array" then .[] | select(.archived == false) | "\(.name)|\(.clone_url)|\(.fork)" else empty end')
         
         if [ -z "$repos_page" ]; then
             break
@@ -227,8 +227,26 @@ main() {
     
     # Get repositories
     print_status "Searching repositories..."
-    #local repositories=($(get_repositories))
-    mapfile -t repositories < <(get_repositories)
+    local repos_tmp_file
+    repos_tmp_file=$(mktemp) || {
+        print_error "Failed to create temporary file"
+        exit 1
+    }
+
+    if ! get_repositories > "$repos_tmp_file"; then
+        rm -f "$repos_tmp_file"
+        print_error "Failed to retrieve repository list"
+        exit 1
+    fi
+
+    repositories=()
+    while IFS= read -r repo_info; do
+        if [ ! -z "$repo_info" ]; then
+            repositories+=("$repo_info")
+        fi
+    done < "$repos_tmp_file"
+    rm -f "$repos_tmp_file"
+
     for i in "${repositories[@]}"; do
         echo "$i" >> /volume1/logs/repositore.txt
     done
