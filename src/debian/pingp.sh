@@ -9,6 +9,13 @@ ADDRESS[1]=$(cut -d "." -f 2 <<< "$1")
 ADDRESS[2]=$(cut -d "." -f 3 <<< "$1")
 ADDRESS[3]=$(cut -d "." -f 4 <<< "$1")
 
+if [ -z "${ADDRESS[0]}" ] && [ -z "${ADDRESS[1]}" ] && [ -z "${ADDRESS[2]}" ] && [ -z "${ADDRESS[3]}" ]; then
+ADDRESS[0]=$(cut -d $'\n' -f 1 <<< "~/.local.bin/ip_address")
+ADDRESS[1]=$(cut -d $'\n' -f 2 <<< "~/.local.bin/ip_address")
+ADDRESS[2]=$(cut -d $'\n' -f 3 <<< "~/.local.bin/ip_address")
+ADDRESS[3]=$(cut -d $'\n' -f 4 <<< "~/.local.bin/ip_address")
+fi
+
 # If only two octets were provided (e.g., 192.168), scan a /16 range.
 if [ -z "${ADDRESS[2]}" ] && [ -z "${ADDRESS[3]}" ]; then
   for i in {0..254}; do
