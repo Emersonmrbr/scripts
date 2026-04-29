@@ -13,23 +13,24 @@ echo 0 > "$TMPFOUND"
 
 trap 'rm -f "$TMPCOUNT" "$TMPFOUND"' EXIT
 
+# Probe a single host, safely update shared counters, and refresh the progress display.
 ping_host() {
     local ip="$1"
     local current found pct filled empty_count bar empty_bar
 
     if ping -c 1 -w 1 "$ip" > /dev/null 2>&1; then
         flock "$TMPFOUND" -c "val=\$(cat '$TMPFOUND'); echo \$((val + 1)) > '$TMPFOUND'"
-        echo "$ip" >> "$HOME/reachable_hosts.txt"
+        echo "$ip" >> "$HOME/Documents/reachable/reachable_hosts.txt"
         echo -e "\n[+] Host $ip is reachable!"
     fi
 
     flock "$TMPCOUNT" -c "val=\$(cat '$TMPCOUNT'); echo \$((val + 1)) > '$TMPCOUNT'"
 
-    # Leitura protegida com valor default
+    # Read counters defensively and fall back to zero if reads fail temporarily.
     current=$(cat "$TMPCOUNT" 2>/dev/null); current=${current:-0}
     found=$(cat "$TMPFOUND" 2>/dev/null);   found=${found:-0}
 
-    # Garante que são números antes de qualquer aritmética
+    # Ensure values are numeric before performing arithmetic.
     [[ "$current" =~ ^[0-9]+$ ]] || current=0
     [[ "$found"   =~ ^[0-9]+$ ]] || found=0
 
@@ -45,23 +46,26 @@ ping_host() {
         "$bar" "$empty_bar" "$pct" "$current" "$TOTAL" "$found"
 }
 
+# Cap the amount of concurrent background jobs to keep resource usage predictable.
 throttle(){
   while [ "$(jobs -r | wc -l)" -ge "$MAX_JOBS" ]; do
     sleep 0.1
   done
 }
   
+# Determine the total number of scan targets from the provided IP pattern.
 calc_total() {
     local o1="$1" o2="$2" o3="$3" o4="$4"
     if   [ -n "$o1" ] && [ -n "$o2" ] && [ -z "$o3" ] && [ -z "$o4" ]; then
-        TOTAL=$((255 * 255))   # /16
+        TOTAL=$((255 * 255))   # /16 range
     elif [ -n "$o1" ] && [ -n "$o2" ] && [ -n "$o3" ] && [ -z "$o4" ]; then
-        TOTAL=255              # /24
+        TOTAL=255              # /24 range
     else
-        TOTAL=1                # host único
+        TOTAL=1                # single host
     fi
 }
 
+    # Run a scan for a /16, /24, or single-host target, based on input granularity.
 test_address() {
   local o1="$1" o2="$2" o3="$3" o4="$4"
   echo 0 > "$TMPCOUNT"
@@ -103,12 +107,14 @@ test_address() {
 }
 
 if [ -z "$1" ]; then
+ # Without a CLI argument, load target patterns from the configured address list file.
  mapfile -t ADDRESSLIST < "$HOME/.local/bin/ip_address.txt"
   for ENTRY in "${ADDRESSLIST[@]}"; do
     IFS='.' read -ra OCT <<< "$ENTRY"
     test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
   done
 else
+  # With a CLI argument, scan only the supplied target pattern.
   IFS='.' read -ra OCT <<< "$1"
   test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
 fi
