@@ -19,7 +19,7 @@ ping_host() {
 
     if ping -c 1 -w 1 "$ip" > /dev/null 2>&1; then
         flock "$TMPFOUND" -c "val=\$(cat '$TMPFOUND'); echo \$((val + 1)) > '$TMPFOUND'"
-        echo "$ip" >> reachable_hosts.txt
+        echo "$ip" >> "$HOME/reachable_hosts.txt"
         echo -e "\n[+] Host $ip is reachable!"
     fi
 
