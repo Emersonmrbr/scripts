@@ -8,6 +8,7 @@ MAX_JOBS=50
 TOTAL=0
 TMPCOUNT=$(mktemp)
 TMPFOUND=$(mktemp)
+STARTTIME=$(date +%s)
 echo 0 > "$TMPCOUNT"
 echo 0 > "$TMPFOUND"
 
@@ -68,14 +69,20 @@ calc_total() {
     # Run a scan for a /16, /24, or single-host target, based on input granularity.
 test_address() {
   local o1="$1" o2="$2" o3="$3" o4="$4"
+  local EST_SECS EST_MIN
   echo 0 > "$TMPCOUNT"
   echo 0 > "$TMPFOUND"
   calc_total "$o1" "$o2" "$o3" "$o4"
+  EST_SECS=$(echo "scale=0; $TOTAL * 1 / $MAX_JOBS" | bc)  # 100ms = ~1s por job em paralelo
+  EST_MIN=$(echo "scale=1; $EST_SECS / 60" | bc)
 
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "► Start scan: ${o1}.${o2}.${o3:-*}.${o4:-*}"
-  echo "  Total hosts : $TOTAL"
-  echo "  Jobs: $MAX_JOBS"
+
+  echo -e "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "► Start scan : ${o1}.${o2}.${o3:-*}.${o4:-*}"
+  echo "  Start time  : $(date +"%d/%m/%Y %H:%M:%S")"
+  echo "  Total hosts: $TOTAL"
+  echo "  Jobs       : $MAX_JOBS"
+  echo "  Estimated  : ~${EST_SECS}s (~${EST_MIN} min) (100ms/ping, $MAX_JOBS parallel)"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
   # If only two octets were provided (e.g., 192.168), scan a /16 range.
@@ -101,20 +108,28 @@ test_address() {
   fi
 
   wait
-  echo -e "\n► Scan concluído — $(cat "$TMPFOUND") host(s) encontrado(s)."
+  ENDTIME=$(date +%s)
+  ELAPSED=$((ENDTIME - STARTTIME))
+  echo -e "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "► Scan concluído — $(cat "$TMPFOUND") host(s) encontrado(s) em $ELAPSED segundos."
+  echo "  End time  : $(date +"%d/%m/%Y %H:%M:%S")"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 }
 
 if [ -z "$1" ]; then
- # Without a CLI argument, load target patterns from the configured address list file.
- mapfile -t ADDRESSLIST < "$HOME/.local/bin/ip_address.txt"
+  # Without a CLI argument, load target patterns from the configured address list file.
+  mapfile -t ADDRESSLIST < "$HOME/.local/bin/ip_address.txt"
   for ENTRY in "${ADDRESSLIST[@]}"; do
     IFS='.' read -ra OCT <<< "$ENTRY"
     test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
   done
+  TOTALELAPSED=$(($(date +%s) - STARTTIME))
+  echo -e "\n► All scans completed in $TOTALELAPSED seconds."
 else
   # With a CLI argument, scan only the supplied target pattern.
   IFS='.' read -ra OCT <<< "$1"
   test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
+  TOTALELAPSED=$(($(date +%s) - STARTTIME))
+  echo -e "\n► All scans completed in $TOTALELAPSED seconds."
 fi
