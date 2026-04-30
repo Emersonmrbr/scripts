@@ -12,6 +12,11 @@ STARTTIME=$(date +%s)
 echo 0 > "$TMPCOUNT"
 echo 0 > "$TMPFOUND"
 
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "► Starting ping scan at $(date +"%d/%m/%Y %H:%M:%S")"
+echo "  Max concurrent jobs: $MAX_JOBS"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
 trap 'rm -f "$TMPCOUNT" "$TMPFOUND"' EXIT
 
 # Probe a single host, safely update shared counters, and refresh the progress display.
@@ -78,11 +83,11 @@ test_address() {
 
 
   echo -e "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "► Start scan : ${o1}.${o2}.${o3:-*}.${o4:-*}"
-  echo "  Start time  : $(date +"%d/%m/%Y %H:%M:%S")"
-  echo "  Total hosts: $TOTAL"
-  echo "  Jobs       : $MAX_JOBS"
-  echo "  Estimated  : ~${EST_SECS}s (~${EST_MIN} min) (100ms/ping, $MAX_JOBS parallel)"
+  echo "► Start cycle : ${o1}.${o2}.${o3:-*}.${o4:-*}"
+  echo "► Start cycle time  : $(date +"%d/%m/%Y %H:%M:%S")"
+  echo "► Total hosts: $TOTAL"
+  echo "► Jobs       : $MAX_JOBS"
+  echo "► Estimated  : ~${EST_SECS}s (~${EST_MIN} min) (100ms/ping, $MAX_JOBS parallel)"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
   # If only two octets were provided (e.g., 192.168), scan a /16 range.
@@ -108,11 +113,11 @@ test_address() {
   fi
 
   wait
-  ENDTIME=$(date +%s)
-  ELAPSED=$((ENDTIME - STARTTIME))
+  ELAPSEDSEC=$((($(date +%s) - STARTTIME) *1))
+  ELAPSEDMIN=$(echo "scale=1; $ELAPSEDSEC / 60" | bc)
   echo -e "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo -e "► Scan concluído — $(cat "$TMPFOUND") host(s) encontrado(s) em $ELAPSED segundos."
-  echo "  End time  : $(date +"%d/%m/%Y %H:%M:%S")"
+  echo -e "► Cycle finished — $(cat "$TMPFOUND") host(s) found in ${ELAPSEDSEC}s (~${ELAPSEDMIN} min)."
+  echo "► End cycle time  : $(date +"%d/%m/%Y %H:%M:%S")"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 }
@@ -124,12 +129,18 @@ if [ -z "$1" ]; then
     IFS='.' read -ra OCT <<< "$ENTRY"
     test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
   done
-  TOTALELAPSED=$(($(date +%s) - STARTTIME))
-  echo -e "\n► All scans completed in $TOTALELAPSED seconds."
 else
   # With a CLI argument, scan only the supplied target pattern.
   IFS='.' read -ra OCT <<< "$1"
   test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
-  TOTALELAPSED=$(($(date +%s) - STARTTIME))
-  echo -e "\n► All scans completed in $TOTALELAPSED seconds."
 fi
+
+TOTALSEC=$((($(date +%s) - STARTTIME) *1))
+TOTALMIN=$(echo "scale=1; $TOTALSEC / 60" | bc)
+echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "► End ping scan — $(cat "$TMPFOUND") host(s) found in ${TOTALSEC}s (~${TOTALMIN} min)."
+echo "► End ping scan  : $(date +"%d/%m/%Y %H:%M:%S")"
+echo "► Total hosts scanned: $TOTAL"
+echo "► Total reachable hosts: $(cat "$TMPFOUND")"
+echo "► Reachable hosts saved to: $HOME/Documents/reachable/reachable_hosts.txt"
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
