@@ -123,8 +123,36 @@ test_address() {
 }
 
 if [ -z "$1" ]; then
+
+  if [ ! -f "$HOME/.local/lib/pingplus/ip_address.txt" ]; then
+    echo "192.168.0
+    192.168.1
+    192.168.2
+    192.168.3
+    192.168.10
+    192.168.100
+    192.168.250
+    10.0.0
+    10.0.1
+    10.1.1
+    10.10.1
+    10.10.10
+    172.16.0
+    172.16.1
+    172.16.10
+    169.254.0
+    169.254.1" > "$HOME/.local/lib/pingplus/ip_address.txt"  # Example target; replace with actual targets as needed.
+    echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Creating new IP address list at $HOME/.local/lib/pingplus/ip_address.txt"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  else
+    echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Using existing IP address list from $HOME/.local/lib/pingplus/ip_address.txt"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  fi
+
   # Without a CLI argument, load target patterns from the configured address list file.
-  mapfile -t ADDRESSLIST < "$HOME/.local/bin/ip_address.txt"
+  mapfile -t ADDRESSLIST < "$HOME/.local/lib/pingplus/ip_address.txt"
   for ENTRY in "${ADDRESSLIST[@]}"; do
     IFS='.' read -ra OCT <<< "$ENTRY"
     test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
