@@ -1,23 +1,32 @@
 #! /bin/bash
 
 # Reset the output file with reachable hosts for the current run.
-rm -f reachable_hosts.txt
+rm -f "$HOME/Documents/reachable/reachable_hosts.txt"
 
 # Limit the number of concurrent ping jobs to avoid overwhelming the system.
 MAX_JOBS=50
 TOTAL=0
+TOTALSCAN=$(mktemp)
+TOTALFOUND=$(mktemp)
 TMPCOUNT=$(mktemp)
 TMPFOUND=$(mktemp)
-STARTTIME=$(date +%s)
+echo 0 > "$TOTALSCAN"
+echo 0 > "$TOTALFOUND"
 echo 0 > "$TMPCOUNT"
 echo 0 > "$TMPFOUND"
+STARTTIME=$(date +%s)
+
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "► Starting ping scan at $(date +"%d/%m/%Y %H:%M:%S")"
 echo "  Max concurrent jobs: $MAX_JOBS"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-trap 'rm -f "$TMPCOUNT" "$TMPFOUND"' EXIT
+trap 'rm -f "$TMPCOUNT" "$TMPFOUND" "$TOTALFOUND" "$TOTALSCAN"' EXIT
+
+if [ ! -d "$HOME/Documents/reachable" ]; then
+  mkdir -p "$HOME/Documents/reachable"
+fi
 
 # Probe a single host, safely update shared counters, and refresh the progress display.
 ping_host() {
@@ -25,12 +34,14 @@ ping_host() {
     local current found pct filled empty_count bar empty_bar
 
     if ping -c 1 -w 1 "$ip" > /dev/null 2>&1; then
-        flock "$TMPFOUND" -c "val=\$(cat '$TMPFOUND'); echo \$((val + 1)) > '$TMPFOUND'"
+        flock "$TMPFOUND" -c "valfound=\$(cat '$TMPFOUND'); echo \$((valfound + 1)) > '$TMPFOUND'"
+        flock "$TOTALFOUND" -c "valtotal=\$(cat '$TOTALFOUND'); echo \$((valtotal + 1)) > '$TOTALFOUND'"
         echo "$ip" >> "$HOME/Documents/reachable/reachable_hosts.txt"
         echo -e "\n[+] Host $ip is reachable!"
     fi
 
-    flock "$TMPCOUNT" -c "val=\$(cat '$TMPCOUNT'); echo \$((val + 1)) > '$TMPCOUNT'"
+    flock "$TMPCOUNT" -c "valcount=\$(cat '$TMPCOUNT'); echo \$((valcount + 1)) > '$TMPCOUNT'"
+    flock "$TOTALSCAN" -c "valscan=\$(cat '$TOTALSCAN'); echo \$((valscan + 1)) > '$TOTALSCAN'"
 
     # Read counters defensively and fall back to zero if reads fail temporarily.
     current=$(cat "$TMPCOUNT" 2>/dev/null); current=${current:-0}
@@ -71,15 +82,27 @@ calc_total() {
     fi
 }
 
+validate_octet(){
+  local oct="$1"
+  [[ "$oct" =~ ^[0-9]{1,3}$ ]] && [ "$oct" -ge 0 ] && [ "$oct" -le 255 ]
+}
+
+# Convert seconds to a "M.D" minutes string without relying on bc.
+secs_to_min() {
+  local s="$1"
+  printf "%d.%d" $(( s / 60 )) $(( (s % 60) * 10 / 60 ))
+}
+
     # Run a scan for a /16, /24, or single-host target, based on input granularity.
 test_address() {
   local o1="$1" o2="$2" o3="$3" o4="$4"
-  local EST_SECS EST_MIN
+  local EST_SECS EST_MIN STARTCYCLE
   echo 0 > "$TMPCOUNT"
   echo 0 > "$TMPFOUND"
+  STARTCYCLE=$(date +%s)
   calc_total "$o1" "$o2" "$o3" "$o4"
-  EST_SECS=$(echo "scale=0; $TOTAL * 1 / $MAX_JOBS" | bc)  # 100ms = ~1s por job em paralelo
-  EST_MIN=$(echo "scale=1; $EST_SECS / 60" | bc)
+  EST_SECS=$(( TOTAL / MAX_JOBS ))
+  EST_MIN=$(secs_to_min "$EST_SECS")
 
 
   echo -e "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -87,34 +110,49 @@ test_address() {
   echo "► Start cycle time  : $(date +"%d/%m/%Y %H:%M:%S")"
   echo "► Total hosts: $TOTAL"
   echo "► Jobs       : $MAX_JOBS"
-  echo "► Estimated  : ~${EST_SECS}s (~${EST_MIN} min) (100ms/ping, $MAX_JOBS parallel)"
+  echo "► Estimated  : ~${EST_SECS}s (~${EST_MIN} min) (100ms~1s/ping, $MAX_JOBS parallel)"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
   # If only two octets were provided (e.g., 192.168), scan a /16 range.
   if [ -n "$o1" ] && [ -n "$o2" ] && [ -z "$o3" ] && [ -z "$o4" ]; then
-    for i in {0..254}; do
-      for j in {0..254}; do
-        ping_host "${o1}.${o2}.$i.$j" &
-        throttle
+    if validate_octet "$o1" && validate_octet "$o2"; then
+      for i in {0..254}; do
+        for j in {0..254}; do
+          ping_host "${o1}.${o2}.$i.$j" &
+          throttle
+        done
       done
-    done
+    else
+      echo "Invalid IP address format: ${o1}.${o2}.*.*"
+      exit 1
+    fi
   # If three octets were provided (e.g., 192.168.1), scan a /24 range.
   elif [ -n "$o1" ] && [ -n "$o2" ] && [ -n "$o3" ] && [ -z "$o4" ]; then
-    for i in {0..254}; do
-      ping_host "${o1}.${o2}.${o3}.$i" &
-      throttle
-    done
+    if validate_octet "$o1" && validate_octet "$o2" && validate_octet "$o3"; then
+      for i in {0..254}; do
+        ping_host "${o1}.${o2}.${o3}.$i" &
+        throttle
+      done
+    else
+      echo "Invalid IP address format: ${o1}.${o2}.${o3}.*"
+      exit 1
+    fi
   # If a full IP address was provided, test only that single host.
   elif [ -n "$o1" ] && [ -n "$o2" ] && [ -n "$o3" ] && [ -n "$o4" ]; then
-      ping_host "${o1}.${o2}.${o3}.${o4}"
+    if validate_octet "$o1" && validate_octet "$o2" && validate_octet "$o3" && validate_octet "$o4"; then
+        ping_host "${o1}.${o2}.${o3}.${o4}"
+    else
+        echo "Invalid IP address format: ${o1}.${o2}.${o3}.${o4}"
+        exit 1
+    fi
   else
       echo "Invalid IP address format."
       exit 1
   fi
 
   wait
-  ELAPSEDSEC=$((($(date +%s) - STARTTIME) *1))
-  ELAPSEDMIN=$(echo "scale=1; $ELAPSEDSEC / 60" | bc)
+  ELAPSEDSEC=$(( $(date +%s) - STARTCYCLE ))
+  ELAPSEDMIN=$(secs_to_min "$ELAPSEDSEC")
   echo -e "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo -e "► Cycle finished — $(cat "$TMPFOUND") host(s) found in ${ELAPSEDSEC}s (~${ELAPSEDMIN} min)."
   echo "► End cycle time  : $(date +"%d/%m/%Y %H:%M:%S")"
@@ -125,12 +163,26 @@ test_address() {
 if [ -z "$1" ]; then
 
   if [ ! -f "$HOME/.local/lib/pingplus/ip_address.txt" ]; then
-    echo "192.168.0
-    ;192.168.1;192.168.2;192.168.3;192.168.10
-    ;192.168.100;192.168.250;10.0.0
-    ;10.0.1;10.1.1;10.10.1;10.10.10;172.16.0;172.16.1
-    ;172.16.10;169.254.0
-    ;169.254.1" > "$HOME/.local/lib/pingplus/ip_address.txt"  # Example target; replace with actual targets as needed.
+  mkdir -p "$HOME/.local/lib/pingplus"
+cat > "$HOME/.local/lib/pingplus/ip_address.txt" << 'EOF'
+192.168.0
+192.168.1
+192.168.2
+192.168.3
+192.168.10
+192.168.100
+192.168.250
+10.0.0
+10.0.1
+10.1.1
+10.10.1
+10.10.10
+172.16.0
+172.16.1
+172.16.10
+169.254.0
+169.254.1
+EOF
     echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Creating new IP address list at $HOME/.local/lib/pingplus/ip_address.txt"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -141,8 +193,10 @@ if [ -z "$1" ]; then
   fi
 
   # Without a CLI argument, load target patterns from the configured address list file.
-  mapfile -d ";" ADDRESSLIST < "$HOME/.local/lib/pingplus/ip_address.txt"
+  mapfile -t ADDRESSLIST < "$HOME/.local/lib/pingplus/ip_address.txt"
   for ENTRY in "${ADDRESSLIST[@]}"; do
+  ENTRY="${ENTRY//[$' \t\r\n']/}"  # Trim whitespace and newlines
+  [[ -z "$ENTRY" || "$ENTRY" =~ ^# ]] && continue  # Skip empty lines and comments
     IFS='.' read -ra OCT <<< "$ENTRY"
     test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
   done
@@ -152,12 +206,12 @@ else
   test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
 fi
 
-TOTALSEC=$((($(date +%s) - STARTTIME) *1))
-TOTALMIN=$(echo "scale=1; $TOTALSEC / 60" | bc)
+TOTALSEC=$(( $(date +%s) - STARTTIME ))
+TOTALMIN=$(secs_to_min "$TOTALSEC")
 echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "► End ping scan — $(cat "$TMPFOUND") host(s) found in ${TOTALSEC}s (~${TOTALMIN} min)."
+echo "► End ping scan — $(cat "$TOTALFOUND") host(s) found in ${TOTALSEC}s (~${TOTALMIN} min)."
 echo "► End ping scan  : $(date +"%d/%m/%Y %H:%M:%S")"
-echo "► Total hosts scanned: $TOTAL"
-echo "► Total reachable hosts: $(cat "$TMPFOUND")"
+echo "► Total hosts scanned: $(cat "$TOTALSCAN")"
+echo "► Total reachable hosts: $(cat "$TOTALFOUND")"
 echo "► Reachable hosts saved to: $HOME/Documents/reachable/reachable_hosts.txt"
 echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
