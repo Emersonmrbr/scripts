@@ -94,6 +94,11 @@ check_dependencies() {
         fi
     done
 
+    if ! mysql --version &>/dev/null; then
+        MYSQL_CMD="mysql $DB_CONFIG"
+        missing_deps+=("mysql")
+    fi
+
     if [[ ${#missing_deps[@]} -ne 0 ]]; then
         print_error "Missing dependencies: ${missing_deps[*]}"
         print_status "Install with: apkg install ${missing_deps[*]}"
@@ -104,14 +109,3 @@ check_dependencies() {
     return 0
 }
 check_dependencies
-
-if mysql --version &>/dev/null; then
-    MYSQL_CMD="mysql $DB_CONFIG"
-    print_success "Using mysql client for database operations"
-elif mariadb --version &>/dev/null; then
-    MYSQL_CMD="mariadb $DB_CONFIG"
-    print_success "Using mariadb client for database operations"
-else
-    print_error "Neither mysql nor mariadb client found. Please install one of them."
-    exit 1
-fi
