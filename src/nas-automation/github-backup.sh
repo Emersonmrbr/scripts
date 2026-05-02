@@ -20,9 +20,9 @@ GITHUB_TOKEN=""
 # GitHub API Configuration
 readonly GITHUB_USERNAME="Emersonmrbr"
 GITHUB_TOKEN=$(grep '^GITHUB_TOKEN=' ~/.secrets.env | cut -d '=' -f2-) || {
-    print_error "GITHUB_TOKEN not found. Please set environment variable or create ~/.secrets.env"
-    print_info "Get your API key at: https://github.com/settings/tokens"
-    exit 1
+	print_error "GITHUB_TOKEN not found. Please set environment variable or create ~/.secrets.env"
+	print_info "Get your API key at: https://github.com/settings/tokens"
+	exit 1
 }
 # Backup Configuration
 readonly BASE_DIR="/volume1/Backup/Github"
@@ -42,289 +42,283 @@ readonly NC='\033[0m' # No color
 
 # Logging function
 log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+	echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
 }
 
 # Function to display colored messages
 print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-    log "INFO: $1"
+	echo -e "${BLUE}[INFO]${NC} $1"
+	log "INFO: $1"
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-    log "SUCCESS: $1"
+	echo -e "${GREEN}[SUCCESS]${NC} $1"
+	log "SUCCESS: $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-    log "WARNING: $1"
+	echo -e "${YELLOW}[WARNING]${NC} $1"
+	log "WARNING: $1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-    log "ERROR: $1"
+	echo -e "${RED}[ERROR]${NC} $1"
+	log "ERROR: $1"
 }
 
-# Check if dependencies are installed
+# Check system dependencies
 check_dependencies() {
-    print_status "Checking dependencies..."
-    
-    local missing_deps=()
-    
-    if ! command -v git &> /dev/null; then
-        missing_deps+=("git")
-    fi
-    
-    if ! command -v curl &> /dev/null; then
-        missing_deps+=("curl")
-    fi
-    
-    if ! command -v jq &> /dev/null; then
-        missing_deps+=("jq")
-    fi
-    
-    if [ ${#missing_deps[@]} -ne 0 ]; then
-        print_error "Missing dependencies: ${missing_deps[*]}"
-        print_status "Install missing dependencies:"
-        print_status "apkg install git curl jq"
-        exit 1
-    fi
-    
-    print_success "All dependencies are installed"
+	print_info "Checking system dependencies..."
+
+	local -a missing_deps=()
+	local -a required_deps=("fit" "curl" "jq")
+
+	for dep in "${required_deps[@]}"; do
+		if ! command -V "$dep" &>/dev/null || command --version "$dep" &>/dev/null || command --help "$dep" &>/dev/null; then
+			missing_deps+=("$dep")
+		fi
+	done
+
+	if [[ ${#missing_deps[@]} -ne 0 ]]; then
+		print_error "Missing dependencies: ${missing_deps[*]}"
+		print_info "Install with: apkg install ${missing_deps[*]}"
+		return 1
+	fi
+
+	print_success "All dependencies satisfied"
+	return 0
 }
 
 # Validate configuration
 validate_config() {
-    print_status "Validating configuration..."
-    
-    if [ "$GITHUB_USERNAME" = "your_github_username" ]; then
-        print_error "Configure your GitHub username in GITHUB_USERNAME variable"
-        exit 1
-    fi
-    
-    if [ "$GITHUB_TOKEN" = "your_token_here" ]; then
-        print_error "Configure your GitHub token in GITHUB_TOKEN variable"
-        print_status "Create a token at: https://github.com/settings/tokens"
-        exit 1
-    fi
-    
-    print_success "Configuration validated"
+	print_status "Validating configuration..."
+
+	if [ "$GITHUB_USERNAME" = "your_github_username" ]; then
+		print_error "Configure your GitHub username in GITHUB_USERNAME variable"
+		exit 1
+	fi
+
+	if [ "$GITHUB_TOKEN" = "your_token_here" ]; then
+		print_error "Configure your GitHub token in GITHUB_TOKEN variable"
+		print_status "Create a token at: https://github.com/settings/tokens"
+		exit 1
+	fi
+
+	print_success "Configuration validated"
 }
 
 # Create base directory
 create_base_directory() {
-    print_status "Creating base directory: $BASE_DIR"
-    
-    if [ ! -d "$BASE_DIR" ]; then
-        
-        if mkdir -p "$BASE_DIR"; then
-            print_success "Directory created: $BASE_DIR"
-        else
-            print_error "Failed to create directory: $BASE_DIR"
-            exit 1
-        fi
-    else
-        print_status "Directory already exists: $BASE_DIR"
-    fi
+	print_status "Creating base directory: $BASE_DIR"
+
+	if [ ! -d "$BASE_DIR" ]; then
+
+		if mkdir -p "$BASE_DIR"; then
+			print_success "Directory created: $BASE_DIR"
+		else
+			print_error "Failed to create directory: $BASE_DIR"
+			exit 1
+		fi
+	else
+		print_status "Directory already exists: $BASE_DIR"
+	fi
 }
 
 # Get repository list
 get_repositories() {
-    print_status "Getting repository list..." >&2
-    
-    local page=1
-    local per_page=100
-    local all_repos=()
-    local response
-    local error_message
-    local repos_page
-    
-    while true; do
-        local url="https://api.github.com/user/repos?page=$page&per_page=$per_page&type=all"
-        
-        
-        if ! response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$url"); then
-            print_error "Failed to connect to GitHub API"
-            exit 1
-        fi
-        
-        # Check for API error
-        error_message=$(echo "$response" | jq -r 'if type == "object" then (.message // empty) else empty end')
-        if [ ! -z "$error_message" ]; then
-            print_error "GitHub API error: $error_message"
-            exit 1
-        fi
-        
-        repos_page=$(echo "$response" | jq -r 'if type == "array" then .[] | select(.archived == false) | "\(.name)|\(.clone_url)|\(.fork)" else empty end')
-        
-        if [ -z "$repos_page" ]; then
-            break
-        fi
-        
-        while IFS= read -r repo_info; do
-            if [ ! -z "$repo_info" ]; then
-                all_repos+=("$repo_info")
-            fi
-        done <<< "$repos_page"
-        
-        page=$((page + 1))
-    done
-    
-    printf '%s\n' "${all_repos[@]}"
+	print_status "Getting repository list..." >&2
+
+	local page=1
+	local per_page=100
+	local all_repos=()
+	local response
+	local error_message
+	local repos_page
+
+	while true; do
+		local url="https://api.github.com/user/repos?page=$page&per_page=$per_page&type=all"
+
+		if ! response=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$url"); then
+			print_error "Failed to connect to GitHub API"
+			exit 1
+		fi
+
+		# Check for API error
+		error_message=$(echo "$response" | jq -r 'if type == "object" then (.message // empty) else empty end')
+		if [ ! -z "$error_message" ]; then
+			print_error "GitHub API error: $error_message"
+			exit 1
+		fi
+
+		repos_page=$(echo "$response" | jq -r 'if type == "array" then .[] | select(.archived == false) | "\(.name)|\(.clone_url)|\(.fork)" else empty end')
+
+		if [ -z "$repos_page" ]; then
+			break
+		fi
+
+		while IFS= read -r repo_info; do
+			if [ ! -z "$repo_info" ]; then
+				all_repos+=("$repo_info")
+			fi
+		done <<<"$repos_page"
+
+		page=$((page + 1))
+	done
+
+	printf '%s\n' "${all_repos[@]}"
 }
 
 # Clone a repository
 clone_repository() {
-    local repo_name="$1"
-    local clone_url="$2"
-    local is_fork="$3"
-    local repo_dir="$BASE_DIR/$repo_name"
-    local auth_url
-    local target_branch
-    local git_output
-    
-    # Check if should include forks
-    if [ "$is_fork" = "true" ] && [ "$INCLUDE_FORKS" = "false" ]; then
-        print_warning "Skipping fork: $repo_name"
-        return 0
-    fi
-    
-    print_status "Processing: $repo_name"
-    
-    if [ -d "$repo_dir" ]; then
-        if git -C "$repo_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            print_status "Repository already exists. Updating: $repo_name"
+	local repo_name="$1"
+	local clone_url="$2"
+	local is_fork="$3"
+	local repo_dir="$BASE_DIR/$repo_name"
+	local auth_url
+	local target_branch
+	local git_output
 
-            auth_url="https://x-access-token:$GITHUB_TOKEN@${clone_url#https://}"
-            git -C "$repo_dir" remote set-url origin "$auth_url" >/dev/null 2>&1
+	# Check if should include forks
+	if [ "$is_fork" = "true" ] && [ "$INCLUDE_FORKS" = "false" ]; then
+		print_warning "Skipping fork: $repo_name"
+		return 0
+	fi
 
-            if ! git_output=$(git -C "$repo_dir" fetch --prune origin 2>&1); then
-                print_warning "Failed to fetch: $repo_name"
-                print_warning "$git_output"
-                return 1
-            fi
+	print_status "Processing: $repo_name"
 
-            target_branch=$(git -C "$repo_dir" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
-            target_branch="${target_branch#origin/}"
+	if [ -d "$repo_dir" ]; then
+		if git -C "$repo_dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+			print_status "Repository already exists. Updating: $repo_name"
 
-            if [ -z "$target_branch" ]; then
-                if git -C "$repo_dir" show-ref --verify --quiet refs/remotes/origin/main; then
-                    target_branch="main"
-                elif git -C "$repo_dir" show-ref --verify --quiet refs/remotes/origin/master; then
-                    target_branch="master"
-                else
-                    print_warning "Could not determine remote default branch: $repo_name"
-                    return 1
-                fi
-            fi
+			auth_url="https://x-access-token:$GITHUB_TOKEN@${clone_url#https://}"
+			git -C "$repo_dir" remote set-url origin "$auth_url" >/dev/null 2>&1
 
-            if git_output=$(git -C "$repo_dir" reset --hard "origin/$target_branch" 2>&1); then
-                print_success "Updated: $repo_name"
-            else
-                print_warning "Failed to update: $repo_name"
-                print_warning "$git_output"
-                return 1
-            fi
-        else
-            print_warning "Directory exists but is not a git repository. Removing and cloning: $repo_name"
-            if ! rm -rf "$repo_dir"; then
-                print_error "Failed to remove invalid directory: $repo_name"
-                return 1
-            fi
+			if ! git_output=$(git -C "$repo_dir" fetch --prune origin 2>&1); then
+				print_warning "Failed to fetch: $repo_name"
+				print_warning "$git_output"
+				return 1
+			fi
 
-            print_status "Cloning: $repo_name"
-            auth_url="https://x-access-token:$GITHUB_TOKEN@${clone_url#https://}"
-            
-            if git clone "$auth_url" "$repo_dir"; then
-                print_success "Cloned: $repo_name"
-            else
-                print_error "Failed to clone: $repo_name"
-                return 1
-            fi
-        fi
-    else
-        print_status "Cloning: $repo_name"
-        
-        auth_url="https://x-access-token:$GITHUB_TOKEN@${clone_url#https://}"
-        
-        if git clone "$auth_url" "$repo_dir"; then
-            print_success "Cloned: $repo_name"
-        else
-            print_error "Failed to clone: $repo_name"
-            return 1
-        fi
-    fi
+			target_branch=$(git -C "$repo_dir" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+			target_branch="${target_branch#origin/}"
 
-    return 0
+			if [ -z "$target_branch" ]; then
+				if git -C "$repo_dir" show-ref --verify --quiet refs/remotes/origin/main; then
+					target_branch="main"
+				elif git -C "$repo_dir" show-ref --verify --quiet refs/remotes/origin/master; then
+					target_branch="master"
+				else
+					print_warning "Could not determine remote default branch: $repo_name"
+					return 1
+				fi
+			fi
+
+			if git_output=$(git -C "$repo_dir" reset --hard "origin/$target_branch" 2>&1); then
+				print_success "Updated: $repo_name"
+			else
+				print_warning "Failed to update: $repo_name"
+				print_warning "$git_output"
+				return 1
+			fi
+		else
+			print_warning "Directory exists but is not a git repository. Removing and cloning: $repo_name"
+			if ! rm -rf "$repo_dir"; then
+				print_error "Failed to remove invalid directory: $repo_name"
+				return 1
+			fi
+
+			print_status "Cloning: $repo_name"
+			auth_url="https://x-access-token:$GITHUB_TOKEN@${clone_url#https://}"
+
+			if git clone "$auth_url" "$repo_dir"; then
+				print_success "Cloned: $repo_name"
+			else
+				print_error "Failed to clone: $repo_name"
+				return 1
+			fi
+		fi
+	else
+		print_status "Cloning: $repo_name"
+
+		auth_url="https://x-access-token:$GITHUB_TOKEN@${clone_url#https://}"
+
+		if git clone "$auth_url" "$repo_dir"; then
+			print_success "Cloned: $repo_name"
+		else
+			print_error "Failed to clone: $repo_name"
+			return 1
+		fi
+	fi
+
+	return 0
 }
 
 # Main function
 main() {
-    print_status "=== Starting GitHub repositories clone ==="
-    print_status "User: $GITHUB_USERNAME"
-    print_status "Directory: $BASE_DIR"
-    print_status "Include forks: $INCLUDE_FORKS"
-    print_status "Log: $LOG_FILE"
-    
-    # Initial checks
-    check_dependencies
-    validate_config
-    create_base_directory
-    
-    # Get repositories
-    print_status "Searching repositories..."
-    local repos_tmp_file
-    repos_tmp_file=$(mktemp) || {
-        print_error "Failed to create temporary file"
-        exit 1
-    }
+	print_status "=== Starting GitHub repositories clone ==="
+	print_status "User: $GITHUB_USERNAME"
+	print_status "Directory: $BASE_DIR"
+	print_status "Include forks: $INCLUDE_FORKS"
+	print_status "Log: $LOG_FILE"
 
-    if ! get_repositories > "$repos_tmp_file"; then
-        rm -f "$repos_tmp_file"
-        print_error "Failed to retrieve repository list"
-        exit 1
-    fi
+	# Initial checks
+	check_dependencies
+	validate_config
+	create_base_directory
 
-    repositories=()
-    while IFS= read -r repo_info; do
-        if [ ! -z "$repo_info" ]; then
-            repositories+=("$repo_info")
-        fi
-    done < "$repos_tmp_file"
-    rm -f "$repos_tmp_file"
+	# Get repositories
+	print_status "Searching repositories..."
+	local repos_tmp_file
+	repos_tmp_file=$(mktemp) || {
+		print_error "Failed to create temporary file"
+		exit 1
+	}
 
-    for i in "${repositories[@]}"; do
-        echo "$i" >> /volume1/logs/repositore.txt
-    done
-    
-    if [ ${#repositories[@]} -eq 0 ]; then
-        print_warning "No repositories found"
-        exit 0
-    fi
-    
-    print_success "Found ${#repositories[@]} repositories"
-    
-    # Clone repositories
-    local cloned=0
-    local failed=0
-    
-    for repo_info in "${repositories[@]}"; do
-        IFS='|' read -r repo_name clone_url is_fork <<< "$repo_info"
-        
-        if clone_repository "$repo_name" "$clone_url" "$is_fork"; then
-            cloned=$((cloned + 1))
-        else
-            failed=$((failed + 1))
-        fi
-    done
-    
-    print_status "=== Summary ==="
-    print_success "Repositories processed: $cloned"
-    if [ $failed -gt 0 ]; then
-        print_warning "Failures: $failed"
-    fi
-    print_status "Complete log at: $LOG_FILE"
+	if ! get_repositories >"$repos_tmp_file"; then
+		rm -f "$repos_tmp_file"
+		print_error "Failed to retrieve repository list"
+		exit 1
+	fi
+
+	repositories=()
+	while IFS= read -r repo_info; do
+		if [ ! -z "$repo_info" ]; then
+			repositories+=("$repo_info")
+		fi
+	done <"$repos_tmp_file"
+	rm -f "$repos_tmp_file"
+
+	for i in "${repositories[@]}"; do
+		echo "$i" >>/volume1/logs/repositore.txt
+	done
+
+	if [ ${#repositories[@]} -eq 0 ]; then
+		print_warning "No repositories found"
+		exit 0
+	fi
+
+	print_success "Found ${#repositories[@]} repositories"
+
+	# Clone repositories
+	local cloned=0
+	local failed=0
+
+	for repo_info in "${repositories[@]}"; do
+		IFS='|' read -r repo_name clone_url is_fork <<<"$repo_info"
+
+		if clone_repository "$repo_name" "$clone_url" "$is_fork"; then
+			cloned=$((cloned + 1))
+		else
+			failed=$((failed + 1))
+		fi
+	done
+
+	print_status "=== Summary ==="
+	print_success "Repositories processed: $cloned"
+	if [ $failed -gt 0 ]; then
+		print_warning "Failures: $failed"
+	fi
+	print_status "Complete log at: $LOG_FILE"
 }
 
 # Execute main script

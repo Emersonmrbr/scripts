@@ -91,7 +91,7 @@ check_dependencies() {
     local -a required_deps=("curl" "jq" "tar" "find")
     
     for dep in "${required_deps[@]}"; do
-        if ! command -v "$dep" &>/dev/null; then
+        if ! command -V "$dep" &>/dev/null || command --version "$dep" &>/dev/null  || command --help "$dep" &>/dev/null; then
             missing_deps+=("$dep")
         fi
     done
@@ -368,13 +368,15 @@ execute_backup() {
     local total_endpoints=${#API_ENDPOINTS[@]}
     local -a failed_endpoints=()
     local current=0
+    local filename=""
+    local description=""
     
     print_info "Processing $total_endpoints API endpoints..."
     
     for endpoint in "${!API_ENDPOINTS[@]}"; do
         ((current++))
-        local description="${API_ENDPOINTS[$endpoint]}"
-        local filename=$(echo "$description" | sed 's/[^a-zA-Z0-9]/_/g')
+        description="${API_ENDPOINTS[$endpoint]}"
+        filename=$(echo "$description" | sed 's/[^a-zA-Z0-9]/_/g')
         
         print_info "Processing [$current/$total_endpoints]: $description"
         print_debug "Endpoint URL: $PAYMO_API_BASE/$endpoint"
@@ -554,9 +556,10 @@ cleanup_old_logs() {
 # }
 
 # Cleanup function for temp files
+# shellcheck disable=SC2329
 cleanup_temp_files() {
     print_debug "Cleaning up temporary files..."
-    rm -f /tmp/paymo_${SCRIPT_NAME}_*.json 2>/dev/null || true
+    rm -f /tmp/paymo_"${SCRIPT_NAME}"_*.json 2>/dev/null || true
 }
 
 # Set cleanup trap instead of error trap
