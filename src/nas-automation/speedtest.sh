@@ -83,7 +83,7 @@ print_error() {
 
 # Check system dependencies
 check_dependencies() {
-    print_info "Checking system dependencies..."
+    print_status "Checking system dependencies..."
 
     local -a missing_deps=()
     local -a required_deps=("curl" "jq" "tar" "find")
@@ -107,8 +107,10 @@ check_dependencies
 
 if mysql --version &>/dev/null; then
     MYSQL_CMD="mysql $DB_CONFIG"
+    print_success "Using mysql client for database operations"
 elif mariadb --version &>/dev/null; then
     MYSQL_CMD="mariadb $DB_CONFIG"
+    print_success "Using mariadb client for database operations"
 else
     print_error "Neither mysql nor mariadb client found. Please install one of them."
     exit 1
