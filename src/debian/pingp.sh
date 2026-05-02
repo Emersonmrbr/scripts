@@ -157,7 +157,6 @@ test_address() {
   echo -e "► Cycle finished — $(cat "$TMPFOUND") host(s) found in ${ELAPSEDSEC}s (~${ELAPSEDMIN} min)."
   echo "► End cycle time  : $(date +"%d/%m/%Y %H:%M:%S")"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
 }
 
 if [ -z "$1" ]; then
@@ -200,6 +199,9 @@ EOF
     test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
   done
 else
+  if ! grep -Fxq "$1" "$HOME/.local/lib/.pingplus/ip_address.txt"; then
+    echo "$1" >> "$HOME/.local/lib/.pingplus/ip_address.txt"
+  fi
   # With a CLI argument, scan only the supplied target pattern.
   IFS='.' read -ra OCT <<< "$1"
   test_address "${OCT[0]}" "${OCT[1]}" "${OCT[2]}" "${OCT[3]}"
