@@ -57,7 +57,7 @@ print_error() {
 #------------------------------------------------------------------------------
 
 load_configuration() {
-  readonly ENV_FILE="$HOME/.secrets.env"
+  readonly ENV_FILE="/home/Emerson/.secrets.env"
 
   if [[ ! -f "$ENV_FILE" ]]; then
     print_error "Environment file $ENV_FILE not found. Please create it with the required variables."
@@ -227,17 +227,17 @@ save_to_database() {
     return 1
   }
 
-    local datetime_sql="${DATETIME//\'/''}"
-    local result_url_sql="${RESULT_URL//\'/''}"
-    local server_sql="${SERVER//\'/''}"
-    local location_sql="${LOCATION//\'/''}"
-    local result_id_sql="${RESULT_ID//\'/''}"
-    local external_ip_sql="${EXTERNAL_IP//\'/''}"
-    local internal_ip_sql="${INTERNAL_IP//\'/''}"
+  local datetime_sql="${DATETIME//\'/''}"
+  local result_url_sql="${RESULT_URL//\'/''}"
+  local server_sql="${SERVER//\'/''}"
+  local location_sql="${LOCATION//\'/''}"
+  local result_id_sql="${RESULT_ID//\'/''}"
+  local external_ip_sql="${EXTERNAL_IP//\'/''}"
+  local internal_ip_sql="${INTERNAL_IP//\'/''}"
 
-    local -r query=$(printf \
-      "INSERT INTO results (datetime, download, upload, server, location, externalip, jitter, packetloss, resultid, resulturl, latency, internalip) VALUES ('%s', %.2f, %.2f, '%s', '%s', '%s', %.2f, %.2f, '%s', '%s', %.2f, '%s');" \
-      "$datetime_sql" "$DOWNLOAD" "$UPLOAD" "$server_sql" "$location_sql" "$external_ip_sql" "$JITTER" "$PACKETLOSS" "$result_id_sql" "$result_url_sql" "$LATENCY" "$internal_ip_sql")
+  local -r query=$(printf \
+    "INSERT INTO results (datetime, download, upload, server, location, externalip, jitter, packetloss, resultid, resulturl, latency, internalip) VALUES ('%s', %.2f, %.2f, '%s', '%s', '%s', %.2f, %.2f, '%s', '%s', %.2f, '%s');" \
+    "$datetime_sql" "$DOWNLOAD" "$UPLOAD" "$server_sql" "$location_sql" "$external_ip_sql" "$JITTER" "$PACKETLOSS" "$result_id_sql" "$result_url_sql" "$LATENCY" "$internal_ip_sql")
 
   if ! mysql_config -e "$query"; then
     print_error "Failed to save results to database"
