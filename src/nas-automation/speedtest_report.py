@@ -10,13 +10,16 @@ import os
 
 load_dotenv()
 
+
 def validar_env():
+    load_dotenv(os.path.expanduser("~/.secrets.env"))
     obrigatorias = ["DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME"]
     faltando = [v for v in obrigatorias if not os.getenv(v)]
 
     if faltando:
         print(f"Variáveis de ambiente ausentes: {', '.join(faltando)}")
         sys.exit(1)
+
 
 validar_env()
 
@@ -58,10 +61,7 @@ ANALISE_TECNICA_MENSAL = ""
 
 def read_from_database():
     try:
-        conn = mysql.connector.connect(
-            **DB_CONFIG,
-            connection_timeout=10
-)
+        conn = mysql.connector.connect(**DB_CONFIG, connection_timeout=10)
         cursor = conn.cursor(dictionary=True)
 
         query = """
@@ -97,6 +97,7 @@ def read_from_database():
     except mysql.connector.Error as e:
         print(f"Error reading from database: {e}")
         sys.exit(1)
+
 
 def gerar_analise_tecnica(dados):
     analise = []
@@ -144,6 +145,7 @@ def gerar_analise_tecnica(dados):
 
     return "\n\n".join(analise)
 
+
 def gerar_hash_sha256(conteudo: str) -> str:
     sha = hashlib.sha256()
     sha.update(conteudo.encode("utf-8"))
@@ -157,13 +159,10 @@ def relatorio_markdown():
         print("Nenhum dado para gerar o relatório.")
         return None
 
-
     analise_tecnica = gerar_analise_tecnica(dados)
-    
 
     with open(TEMPLATE_PATH, "r", encoding="utf-8") as f:
         template = f.read()
-
 
     relatorio = template.format(
         EMPRESA=EMPRESA,
@@ -186,7 +185,7 @@ def relatorio_markdown():
 
     hash_sha256 = gerar_hash_sha256(relatorio)
 
-# O hash é calculado antes da inclusão do rodapé
+    # O hash é calculado antes da inclusão do rodapé
 
     rodape_hash = f"""
 
@@ -217,7 +216,6 @@ Qualquer alteração no conteúdo invalida este hash.
     print(f"Relatório gerado com sucesso: {output_file}")
 
     return dados
-
 
 
 if __name__ == "__main__":
