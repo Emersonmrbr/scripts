@@ -80,8 +80,8 @@ def read_from_database():
                 DATE_FORMAT(CURRENT_DATE, '%m') AS mes,
                 COUNT(*) AS total_medicoes
             FROM results
-            WHERE createdat >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
-            AND createdat <  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
+            WHERE `datetime` >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
+            AND `datetime` <  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
         """
 
         cursor.execute(query)
@@ -107,31 +107,46 @@ def gerar_analise_tecnica(dados):
         "apresentaram comportamento compatível com o perfil do serviço monitorado."
     )
 
-    if dados["minimo_download"] < MINIMO_ACEITAVEL_MBPS_DOWNLOAD:
+    if (
+        dados["minimo_download"] is not None
+        and dados["minimo_download"] < MINIMO_ACEITAVEL_MBPS_DOWNLOAD
+    ):
         analise.append(
             f"**Alerta:** Velocidade mínima de download abaixo do esperado "
             f"({dados['minimo_download']} Mbps)."
         )
 
-    if dados["minimo_upload"] < MINIMO_ACEITAVEL_MBPS_UPLOAD:
+    if (
+        dados["minimo_upload"] is not None
+        and dados["minimo_upload"] < MINIMO_ACEITAVEL_MBPS_UPLOAD
+    ):
         analise.append(
             f"**Alerta:** Velocidade mínima de upload abaixo do esperado "
             f"({dados['minimo_upload']} Mbps)."
         )
 
-    if dados["media_download"] < MEDIA_ACEITAVEL_MBPS_DOWNLOAD:
+    if (
+        dados["media_download"] is not None
+        and dados["media_download"] < MEDIA_ACEITAVEL_MBPS_DOWNLOAD
+    ):
         analise.append(
             f"**Alerta:** Média mensal de download abaixo do esperado "
             f"({dados['media_download']} Mbps)."
         )
 
-    if dados["media_upload"] < MEDIA_ACEITAVEL_MBPS_UPLOAD:
+    if (
+        dados["media_upload"] is not None
+        and dados["media_upload"] < MEDIA_ACEITAVEL_MBPS_UPLOAD
+    ):
         analise.append(
             f"**Alerta:** Média mensal de upload abaixo do esperado "
             f"({dados['media_upload']} Mbps)."
         )
 
-    if dados["maximo_latencia"] > MAXIMO_PING_ACEITAVEL_MS:
+    if (
+        dados["maximo_latencia"] is not None
+        and dados["maximo_latencia"] > MAXIMO_PING_ACEITAVEL_MS
+    ):
         analise.append(
             f"**Alerta:** Latência máxima registrada acima do aceitável "
             f"({dados['maximo_latencia']} ms)."
