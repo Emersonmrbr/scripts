@@ -12,7 +12,7 @@ load_dotenv()
 
 
 def validar_env():
-    load_dotenv(os.path.expanduser("~/.secrets.env"))
+    load_dotenv(os.path.expanduser("/home/Emerson/.secrets.env"))
     obrigatorias = ["DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME"]
     faltando = [v for v in obrigatorias if not os.getenv(v)]
 
@@ -68,12 +68,12 @@ def read_from_database():
             SELECT
             	MIN(download)					AS minimo_download,
                 MIN(upload)						AS minimo_upload,
-                MAX(ping)						AS maximo_ping,
+                MAX(latency)						AS maximo_ping,
                 ROUND(AVG(download), 2)         AS media_download,
                 ROUND(AVG(upload), 2)           AS media_upload,
-                ROUND(AVG(ping), 2)             AS media_ping,
+                ROUND(AVG(latency), 2)             AS media_ping,
                 ROUND(AVG(jitter), 2)           AS media_jitter,
-                ROUND(AVG(pacote_perdido), 2)   AS media_pacote_perdido,
+                ROUND(AVG(packetloss), 2)   AS media_pacote_perdido,
                 DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01') AS inicio,
                 DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS fim,
                 DATE_FORMAT(CURRENT_DATE, '%Y') AS ano,
