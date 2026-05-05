@@ -68,10 +68,10 @@ def read_from_database():
             SELECT
             	MIN(download)					AS minimo_download,
                 MIN(upload)						AS minimo_upload,
-                MAX(latency)						AS maximo_ping,
+                MAX(latency)						AS maximo_latencia,
                 ROUND(AVG(download), 2)         AS media_download,
                 ROUND(AVG(upload), 2)           AS media_upload,
-                ROUND(AVG(latency), 2)             AS media_ping,
+                ROUND(AVG(latency), 2)             AS media_latencia,
                 ROUND(AVG(jitter), 2)           AS media_jitter,
                 ROUND(AVG(packetloss), 2)   AS media_pacote_perdido,
                 DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01') AS inicio,
@@ -79,7 +79,7 @@ def read_from_database():
                 DATE_FORMAT(CURRENT_DATE, '%Y') AS ano,
                 DATE_FORMAT(CURRENT_DATE, '%m') AS mes,
                 COUNT(*) AS total_medicoes
-            FROM resultados
+            FROM results
             WHERE data_hora >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
             AND data_hora <  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
         """
@@ -131,10 +131,10 @@ def gerar_analise_tecnica(dados):
             f"({dados['media_upload']} Mbps)."
         )
 
-    if dados["maximo_ping"] > MAXIMO_PING_ACEITAVEL_MS:
+    if dados["maximo_latencia"] > MAXIMO_PING_ACEITAVEL_MS:
         analise.append(
             f"**Alerta:** Latência máxima registrada acima do aceitável "
-            f"({dados['maximo_ping']} ms)."
+            f"({dados['maximo_latencia']} ms)."
         )
 
     if len(analise) == 1:
@@ -226,7 +226,7 @@ if __name__ == "__main__":
         print("Médias do mês anterior")
         print(f"Média de download:   {dados['media_download']} Mbps")
         print(f"Média de upload:   {dados['media_upload']} Mbps")
-        print(f"Média de ping:   {dados['media_ping']} ms")
+        print(f"Média de latência:   {dados['media_ping']} ms")
         print(f"Média de jitter:   {dados['media_jitter']} ms")
         print(f"Média de perda de pacotes:   {dados['media_pacote_perdido']} %")
         print(f"Período analisado: {DATA_INICIO} a {DATA_FIM}")
