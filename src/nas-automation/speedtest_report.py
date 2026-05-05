@@ -192,7 +192,7 @@ def relatorio_markdown():
         TOTAL_MEDICOES=dados["total_medicoes"],
         MEDIA_DOWNLOAD=dados["media_download"],
         MEDIA_UPLOAD=dados["media_upload"],
-        MEDIA_PING=dados["media_ping"],
+        MEDIA_PING=dados["media_latencia"],
         MEDIA_JITTER=dados["media_jitter"],
         MEDIA_PERDA=dados["media_pacote_perdido"],
         ANALISE_TECNICA_MENSAL=analise_tecnica,
@@ -241,7 +241,7 @@ if __name__ == "__main__":
         print("Médias do mês anterior")
         print(f"Média de download:   {dados['media_download']} Mbps")
         print(f"Média de upload:   {dados['media_upload']} Mbps")
-        print(f"Média de latência:   {dados['media_ping']} ms")
+        print(f"Média de latência:   {dados['media_latencia']} ms")
         print(f"Média de jitter:   {dados['media_jitter']} ms")
         print(f"Média de perda de pacotes:   {dados['media_pacote_perdido']} %")
         print(f"Período analisado: {DATA_INICIO} a {DATA_FIM}")
