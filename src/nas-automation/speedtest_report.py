@@ -80,8 +80,8 @@ def read_from_database():
                 DATE_FORMAT(CURRENT_DATE, '%m') AS mes,
                 COUNT(*) AS total_medicoes
             FROM results
-            WHERE data_hora >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
-            AND data_hora <  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
+            WHERE createdat >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
+            AND createdat <  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
         """
 
         cursor.execute(query)
