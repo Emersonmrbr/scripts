@@ -11,8 +11,8 @@
 # VARIABLES
 #------------------------------------------------------------------------------
 DOWNLOAD="" UPLOAD="" JITTER="" LATENCY="" DATETIME="" RESULT_URL="" SERVER="" RESULT_ID="" EXTERNAL_IP="" PACKETLOSS="" INTERNAL_IP=""
+DB_HOST="" DB_PORT="" DB_USER="" DB_PASSWORD="" DB_NAME=""
 # Backup Configuration
-readonly BASE_DIR="/volume1/Backup/Speedtest"
 readonly LOG_FILE="/volume1/logs/speedtest.log"
 
 #------------------------------------------------------------------------------
@@ -56,36 +56,55 @@ print_error() {
 # CONFIGURATION SECTION
 #------------------------------------------------------------------------------
 
-# Database Configuration
-readonly DB_HOST=$(grep '^DB_HOST=' ~/.secrets.env | cut -d "=" -f2-) || {
-  print_error "DB_HOST not found. Please set environment variable or create ~/.secrets.env"
-  exit 1
-}
-readonly DB_PORT=$(grep '^DB_PORT=' ~/.secrets.env | cut -d '=' -f2-) || {
-  print_error "DB_PORT not found. Please set environment variable or create ~/.secrets.env"
-  exit 1
-}
-readonly DB_USER=$(grep '^DB_USER=' ~/.secrets.env | cut -d '=' -f2-) || {
-  print_error "DB_USER not found. Please set environment variable or create ~/.secrets.env"
-  exit 1
-}
-readonly DB_PASSWORD=$(grep '^DB_PASSWORD=' ~/.secrets.env | cut -d '=' -f2-) || {
-  print_error "DB_PASSWORD not found. Please set environment variable or create ~/.secrets.env"
-  exit 1
-}
-readonly DB_NAME=$(grep '^DB_NAME=' ~/.secrets.env | cut -d '=' -f2-) || {
-  print_error "DB_NAME not found. Please set environment variable or create ~/.secrets.env"
-  exit 1
+load_configuration() {
+  readonly ENV_FILE="$HOME/.secrets.env"
+
+  if [[ ! -f "$ENV_FILE" ]]; then
+    print_error "Environment file $ENV_FILE not found. Please create it with the required variables."
+    exit 1
+  fi
+  # Database Configuration
+  DB_HOST=$(grep '^DB_HOST=' "$ENV_FILE" | cut -d "=" -f2-) || {
+    print_error "DB_HOST not found. Please set environment variable or create $ENV_FILE"
+    exit 1
+  }
+  DB_PORT=$(grep '^DB_PORT=' "$ENV_FILE" | cut -d '=' -f2-) || {
+    print_error "DB_PORT not found. Please set environment variable or create $ENV_FILE"
+    exit 1
+  }
+  DB_USER=$(grep '^DB_USER=' "$ENV_FILE" | cut -d '=' -f2-) || {
+    print_error "DB_USER not found. Please set environment variable or create $ENV_FILE"
+    exit 1
+  }
+  DB_PASSWORD=$(grep '^DB_PASSWORD=' "$ENV_FILE" | cut -d '=' -f2-) || {
+    print_error "DB_PASSWORD not found. Please set environment variable or create $ENV_FILE"
+    exit 1
+  }
+  DB_NAME=$(grep '^DB_NAME=' "$ENV_FILE" | cut -d '=' -f2-) || {
+    print_error "DB_NAME not found. Please set environment variable or create $ENV_FILE"
+    exit 1
+  }
+
+  print_success "Configuration loaded successfully"
+  return 0
+
 }
 
-readonly -a DB_CONFIG=(--host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --password="$DB_PASSWORD" --database="$DB_NAME")
+mysql_config() {
+  mysql \
+    --host="$DB_HOST" \
+    --port="$DB_PORT" \
+    --user="$DB_USER" \
+    --password="$DB_PASSWORD" \
+    "$DB_NAME" "$@"
+}
 
 # Check system dependencies
 check_dependencies() {
   print_status "Checking system dependencies..."
 
   local -a missing_deps=()
-  local -a required_deps=("curl" "jq" "tar" "find" "mysql")
+  local -ar required_deps=("curl" "jq" "tar" "find" "mysql")
 
   for dep in "${required_deps[@]}"; do
     if ! command -v "$dep" &>/dev/null; then
@@ -106,12 +125,11 @@ check_dependencies() {
 test_speed() {
   print_status "Running speedtest..."
   local result=""
-  local raw
   if ! result=$(speedtest --format=json 2>>"$LOG_FILE" | jq -c 'select(.type == "result")'); then
     print_error "Speedtest failed"
     return 1
   fi
-  raw=$(jq -r '
+  local -r raw=$(jq -r '
   [
   ((.download.bandwidth / 125000) | floor),
   ((.upload.bandwidth / 125000) | floor),
@@ -120,7 +138,8 @@ test_speed() {
   (.timestamp | sub("T"; " ") | sub("Z"; "")),
   .result.url,
   .result.id,
-  "id:\(.server.id) - host:\(.server.host) - port:\(.server.port) - name:\(.server.name) - location:\(.server.location) - country:\(.server.country) - ip:\(.server.ip) - url:\(.server.url)",
+  "id:\(.server.id) - host:\(.server.host) - port:\(.server.port) - name:\(.server.name) - ip:\(.server.ip) - url:\(.server.url)",
+  "location:\(.server.location) - country:\(.server.country)",
   .interface.externalIp,
   .interface.internalIp,
   .packetLoss
@@ -143,34 +162,108 @@ test_speed() {
     read -r RESULT_URL
     read -r RESULT_ID
     read -r SERVER
+    read -r LOCATION
     read -r EXTERNAL_IP
     read -r INTERNAL_IP
     read -r PACKETLOSS
   } <<<"$raw"
 
-  SERVER=$(printf '%s' "$SERVER" | sed "s/'/''/g")
-
   print_success "Speedtest completed successfully"
   return 0
 }
 
-# test_speed || exit 1
+#------------------------------------------------------------------------------
+# DATABASE FUNCTIONS
+#------------------------------------------------------------------------------
+
+ensure_table() {
+
+  print_status "Ensuring database table exists..."
+  if mysql_config <<'SQL'; then
+CREATE TABLE IF NOT EXISTS results (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  datetime    DATETIME       NOT NULL,
+    download    DECIMAL(10,2)  NOT NULL COMMENT 'Mbps',
+    upload      DECIMAL(10,2)  NOT NULL COMMENT 'Mbps',
+    server      VARCHAR(255),
+    location    VARCHAR(300),
+    externalip  VARCHAR(50),
+  createdat  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    jitter      DECIMAL(10,2)  COMMENT 'ms',
+    packetloss  DECIMAL(10,2),
+    resultid    VARCHAR(50),
+  resulturl   VARCHAR(255),
+    latency     DECIMAL(10,2)  COMMENT 'ms',
+    internalip  VARCHAR(50)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+SQL
+    print_success "Database table ensured successfully"
+    return 0
+  fi
+
+  print_warning "Could not create table (likely missing CREATE privilege). Checking if table already exists..."
+  if mysql_config -N -s -e "SELECT 1 FROM information_schema.tables WHERE table_schema = '$DB_NAME' AND table_name = 'results' LIMIT 1;" | grep -q '^1$'; then
+    print_warning "Using existing results table without CREATE privilege."
+    return 0
+  fi
+
+  print_error "Database table results does not exist and could not be created with current user permissions."
+  return 1
+}
 
 save_to_database() {
+
   print_status "Saving results to database..."
+  local before_count="0"
+  local after_count="0"
 
-  local query="INSERT INTO results (download, upload, jitter, latency, datetime, resulturl, server, resultid, externalip, internalip, packetloss) VALUES ($DOWNLOAD, $UPLOAD, $JITTER, $LATENCY, '$DATETIME', '$RESULT_URL', '$SERVER', '$RESULT_ID', '$EXTERNAL_IP', '$INTERNAL_IP', $PACKETLOSS);"
+  ensure_table || {
+    print_error "Failed to ensure database table exists"
+    return 1
+  }
 
-  if ! mysql "${DB_CONFIG[@]}" -e "$query"; then
+  before_count=$(mysql_config -N -s -e "SELECT COUNT(*) FROM results WHERE resultid = '$RESULT_ID';") || {
+    print_error "Failed to read existing record count before insert"
+    return 1
+  }
+
+    local datetime_sql="${DATETIME//\'/''}"
+    local result_url_sql="${RESULT_URL//\'/''}"
+    local server_sql="${SERVER//\'/''}"
+    local location_sql="${LOCATION//\'/''}"
+    local result_id_sql="${RESULT_ID//\'/''}"
+    local external_ip_sql="${EXTERNAL_IP//\'/''}"
+    local internal_ip_sql="${INTERNAL_IP//\'/''}"
+
+    local -r query=$(printf \
+      "INSERT INTO results (datetime, download, upload, server, location, externalip, jitter, packetloss, resultid, resulturl, latency, internalip) VALUES ('%s', %.2f, %.2f, '%s', '%s', '%s', %.2f, %.2f, '%s', '%s', %.2f, '%s');" \
+      "$datetime_sql" "$DOWNLOAD" "$UPLOAD" "$server_sql" "$location_sql" "$external_ip_sql" "$JITTER" "$PACKETLOSS" "$result_id_sql" "$result_url_sql" "$LATENCY" "$internal_ip_sql")
+
+  if ! mysql_config -e "$query"; then
     print_error "Failed to save results to database"
     return 1
   fi
 
-  print_success "Results saved to database successfully"
+  after_count=$(mysql_config -N -s -e "SELECT COUNT(*) FROM results WHERE resultid = '$RESULT_ID';") || {
+    print_error "Failed to read record count after insert"
+    return 1
+  }
+
+  if [[ "$after_count" -le "$before_count" ]]; then
+    print_error "Insert command completed, but no new record was confirmed in $DB_NAME.results on $DB_HOST:$DB_PORT."
+    return 1
+  fi
+
+  print_success "Results saved to database successfully in $DB_NAME.results on $DB_HOST:$DB_PORT"
   return 0
 }
 
+#------------------------------------------------------------------------------
+# MAIN EXECUTION
+#------------------------------------------------------------------------------
+
 main() {
+  load_configuration || exit 1
   check_dependencies || exit 1
   test_speed || exit 1
   save_to_database || exit 1
