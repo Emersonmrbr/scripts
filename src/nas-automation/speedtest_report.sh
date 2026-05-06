@@ -117,8 +117,8 @@ check_dependencies() {
 
 read_from_database() {
   print_status "Reading data from database..."
-  local -r query=$(printf \
-    "SELECT
+  read -r -d '' query <<'SQL'
+SELECT
   MIN(download) AS minimum_download,
   MIN(upload) AS minimum_upload,
   MAX(latency) AS maximum_latency,
@@ -134,8 +134,8 @@ read_from_database() {
   COUNT(*) AS total_measurements
 FROM results
 WHERE datetime >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
-AND datetime <  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
-)")
+AND datetime < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
+SQL
   dados=$(mysql_config -N -e "$query") || {
     print_error "Failed to execute query: $query"
     exit 1
