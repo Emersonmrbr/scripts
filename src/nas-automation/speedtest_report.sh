@@ -122,6 +122,7 @@ SELECT
   MIN(download) AS minimum_download,
   MIN(upload) AS minimum_upload,
   MAX(latency) AS maximum_latency,
+  MAX(jitter) AS maximum_jitter,
   ROUND(AVG(download), 2) AS average_download,
   ROUND(AVG(upload), 2) AS average_upload,
   ROUND(AVG(latency), 2) AS average_latency,
@@ -144,12 +145,13 @@ SQL
     print_warning "No data found for the specified date range."
     exit 0
   fi
-  IFS=$'\t' read -r minimum_download minimum_upload maximum_latency average_download average_upload average_latency average_jitter average_packet_loss start_date end_date year month total_measurements <<<"$dados"
+  IFS=$'\t' read -r minimum_download minimum_upload maximum_latency maximum_jitter average_download average_upload average_latency average_jitter average_packet_loss start_date end_date year month total_measurements <<<"$dados"
   print_success "Data retrieved successfully"
 
   echo "Minimum Download: $minimum_download Mbps"
   echo "Minimum Upload: $minimum_upload Mbps"
   echo "Maximum Latency: $maximum_latency ms"
+  echo "Maximum Jitter: $maximum_jitter ms"
   echo "Average Download: $average_download Mbps"
   echo "Average Upload: $average_upload Mbps"
   echo "Average Latency: $average_latency ms"
