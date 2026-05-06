@@ -146,6 +146,17 @@ SQL
   fi
   IFS=$'\t' read -r minimum_download minimum_upload maximum_latency average_download average_upload average_latency average_jitter average_packet_loss start_date end_date year month total_measurements <<<"$dados"
   print_success "Data retrieved successfully"
+
+  echo "Minimum Download: $minimum_download Mbps"
+  echo "Minimum Upload: $minimum_upload Mbps"
+  echo "Maximum Latency: $maximum_latency ms"
+  echo "Average Download: $average_download Mbps"
+  echo "Average Upload: $average_upload Mbps"
+  echo "Average Latency: $average_latency ms"
+  echo "Average Jitter: $average_jitter ms"
+  echo "Average Packet Loss: $average_packet_loss %"
+  echo "Date Range: $start_date to $end_date"
+  echo "Total Measurements: $total_measurements"
 }
 
 #------------------------------------------------------------------------------
