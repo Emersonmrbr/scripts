@@ -133,8 +133,8 @@ read_from_database() {
   DATE_FORMAT(CURRENT_DATE, '%m') AS month,
   COUNT(*) AS total_measurements
 FROM results
-WHERE $(datetime) >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
-AND $(datetime) <  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
+WHERE datetime >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
+AND datetime <  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
 )")
   dados=$(mysql_config -N -e "$query") || {
     print_error "Failed to execute query: $query"
