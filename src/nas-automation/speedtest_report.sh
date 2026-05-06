@@ -3,7 +3,7 @@
 #------------------------------------------------------------------------------
 # VARIABLES
 #------------------------------------------------------------------------------
-DOWNLOAD="" UPLOAD="" JITTER="" LATENCY="" DATETIME="" RESULT_URL="" SERVER="" RESULT_ID="" EXTERNAL_IP="" PACKETLOSS="" INTERNAL_IP=""
+# DOWNLOAD="" UPLOAD="" JITTER="" LATENCY="" DATETIME="" RESULT_URL="" SERVER="" RESULT_ID="" EXTERNAL_IP="" PACKETLOSS="" INTERNAL_IP=""
 DB_HOST="" DB_PORT="" DB_USER="" DB_PASSWORD="" DB_NAME=""
 # Backup Configuration
 readonly LOG_FILE="/volume1/logs/speedtest.log"
@@ -159,6 +159,7 @@ SQL
   echo "Average Packet Loss: $average_packet_loss %"
   echo "Date Range: $start_date to $end_date"
   echo "Total Measurements: $total_measurements"
+  echo "Year: $year, Month: $month"
 }
 
 #------------------------------------------------------------------------------
