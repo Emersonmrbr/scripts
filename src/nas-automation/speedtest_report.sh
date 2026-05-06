@@ -147,3 +147,15 @@ AND $(datetime) <  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
   IFS=$'\t' read -r minimum_download minimum_upload maximum_latency average_download average_upload average_latency average_jitter average_packet_loss start_date end_date year month total_measurements <<<"$dados"
   print_success "Data retrieved successfully"
 }
+
+#------------------------------------------------------------------------------
+# MAIN EXECUTION
+#------------------------------------------------------------------------------
+
+main() {
+  load_configuration || exit 1
+  check_dependencies || exit 1
+  read_from_database || exit 1
+}
+
+main "$@"
