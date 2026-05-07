@@ -5,6 +5,35 @@
 #------------------------------------------------------------------------------
 MINDOWNLOAD="" MINUPLOAD="" MAXLATENCY="" MAXJITTER="" AVERAGEDOWNLOAD="" AVERAGEUPLOAD="" AVERAGELATENCY="" AVERAGEJITTER="" AVERAGEPACKETLOSS="" STARTDATE="" ENDDATE="" YEAR="" MONTH="" TOTALMEASUREMENTS=""
 DB_HOST="" DB_PORT="" DB_USER="" DB_PASSWORD="" DB_NAME=""
+
+TODAY=$(date +%Y-%m-01)
+LASTDAYLASTMONTH=$(date -d "$TODAY -1 day" +%Y-%m-%d)
+FIRSTDAYLASTMONTH=$(date -d "$(date -d "$LASTDAYLASTMONTH" +%Y-%m-01)" +%Y-%m-%d)
+
+MONTHYEAR=$(date -d "$LASTDAYLASTMONTH" +%m/%Y)
+STARTDATE=$(date -d "$FIRSTDAYLASTMONTH" +%d/%m/%Y)
+ENDDATE=$(date -d "$LASTDAYLASTMONTH" +%d/%m/%Y)
+MONTHFILE=$(date -d "$LASTDAYLASTMONTH" +%Y_%m)
+
+EMPRESA="Núcleo MAP - Máquinas, Automação e Programação"
+CNPJ="30.945.466/0001-20"
+RESPONSAVEL_TECNICO="Emerson Martins Brito"
+CARGO="Especialista em automação"
+CONTATO="emerson@nucleomap.com.br"
+
+TEMPLATE_PATH="template_relatorio.md"
+OUTPUT_DIR="/volume1/Reports"
+
+CONTRACTED_SPEED_MBPS=1000  # Defina a velocidade contratada aqui
+MINIMUM_ACCEPTABLE_MBPS_DOWNLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.4" | bc)  # 40% da contratada
+MINIMUM_ACCEPTABLE_MBPS_UPLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.2" | bc)  # 20% da contratada
+AVERAGE_ACCEPTABLE_MBPS_DOWNLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.8" | bc)  # 80% da contratada
+AVERAGE_ACCEPTABLE_MBPS_UPLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.4" | bc)  # 40% da contratada
+MAXIMUM_ACCEPTABLE_PING_MS=40  # ms
+MONTHLY_TECHNICAL_ANALYSIS=""
+
+ANALYSIS=""
+
 # Backup Configuration
 readonly LOG_FILE="/volume1/logs/speedtest.log"
 
@@ -160,6 +189,59 @@ SQL
   echo "Date Range: $STARTDATE to $ENDDATE"
   echo "Total Measurements: $TOTALMEASUREMENTS"
   echo "Year: $YEAR, Month: $MONTH"
+}
+
+generate_technical_analysis() {
+
+    ANALYSIS+=$(cat <<'EOF'
+Durante o período avaliado, os indicadores de desempenho
+        apresentaram comportamento compatível com o perfil do serviço monitorado.
+EOF
+    )
+
+    if [[ -n "$MINDOWNLOAD" && "$MINDOWNLOAD" -lt "$MINIMUM_ACCEPTABLE_MBPS_DOWNLOAD" ]]; then
+        ANALYSIS+=$(cat <<EOF
+**Alerta:** Velocidade mínima de download abaixo do esperado (${MINDOWNLOAD} Mbps).
+EOF
+        )
+    fi
+
+    if [[ -n "$MINUPLOAD" && "$MINUPLOAD" -lt "$MINIMUM_ACCEPTABLE_MBPS_UPLOAD" ]]; then
+        ANALYSIS+=$(cat <<EOF
+**Alerta:** Velocidade mínima de upload abaixo do esperado (${MINUPLOAD} Mbps).
+EOF
+        )
+    fi
+
+    if [[ -n "$AVERAGEDOWNLOAD" && "$AVERAGEDOWNLOAD" -lt "$AVERAGE_ACCEPTABLE_MBPS_DOWNLOAD" ]]; then
+        ANALYSIS+=$(cat <<EOF
+**Alerta:** Média mensal de download abaixo do esperado (${AVERAGEDOWNLOAD} Mbps).
+EOF
+        )
+    fi
+
+    if [[ -n "$AVERAGEUPLOAD" && "$AVERAGEUPLOAD" -lt "$AVERAGE_ACCEPTABLE_MBPS_UPLOAD" ]]; then
+        ANALYSIS+=$(cat <<EOF
+**Alerta:** Média mensal de upload abaixo do esperado (${AVERAGEUPLOAD} Mbps).
+EOF
+        )
+    fi
+
+    if [[ -n "$MAXLATENCY" && "$MAXLATENCY" -gt "$MAXIMUM_ACCEPTABLE_PING_MS" ]]; then
+        ANALYSIS+=$(cat <<EOF
+**Alerta:** Latência máxima registrada acima do aceitável (${MAXLATENCY} ms).
+EOF
+        )
+    fi
+
+    if [[ ${#ANALYSIS[@]} -eq 1 ]]; then
+        ANALYSIS+=$(cat <<EOF
+Não foram observadas degradações persistentes que comprometessem a qualidade da conexão durante o mês de referência.
+EOF
+        )
+    fi
+
+    return 0
 }
 
 #------------------------------------------------------------------------------
