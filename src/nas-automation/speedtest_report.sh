@@ -24,12 +24,12 @@ CONTATO="emerson@nucleomap.com.br"
 TEMPLATE_PATH="template_relatorio.md"
 OUTPUT_DIR="/volume1/Reports"
 
-CONTRACTED_SPEED_MBPS=1000  # Defina a velocidade contratada aqui
-MINIMUM_ACCEPTABLE_MBPS_DOWNLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.4" | bc)  # 40% da contratada
-MINIMUM_ACCEPTABLE_MBPS_UPLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.2" | bc)  # 20% da contratada
-AVERAGE_ACCEPTABLE_MBPS_DOWNLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.8" | bc)  # 80% da contratada
-AVERAGE_ACCEPTABLE_MBPS_UPLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.4" | bc)  # 40% da contratada
-MAXIMUM_ACCEPTABLE_PING_MS=40  # ms
+CONTRACTED_SPEED_MBPS=1000
+MINIMUM_ACCEPTABLE_MBPS_DOWNLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.4" | bc)  # 40% of the contractored speed
+MINIMUM_ACCEPTABLE_MBPS_UPLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.2" | bc)  # 20% of the contractored speed
+AVERAGE_ACCEPTABLE_MBPS_DOWNLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.8" | bc)  # 80% of the contractored speed
+AVERAGE_ACCEPTABLE_MBPS_UPLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.4" | bc)  # 40% of the contractored speed
+MAXIMUM_ACCEPTABLE_PING_MS=40
 MONTHLY_TECHNICAL_ANALYSIS=""
 
 ANALYSIS=""
