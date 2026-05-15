@@ -66,10 +66,10 @@ sync_icloud() {
     mkdir -p "$ICLOUD_LOCALPATH"
     print_warning "iCloud local path $ICLOUD_LOCALPATH did not exist and was created."
   fi
-  if rclone bisync "$ICLOUD_LOCALPATH" "$ICLOUD_REMOTEPATH" --exclude "**/.DS_Store" --exclude "*.band" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case --resync | print_info "iCloud sync without --resync syncing..." >>"$RCLONE_LOG" 2>&1; then
+  if rclone bisync "$ICLOUD_LOCALPATH" "$ICLOUD_REMOTEPATH" --exclude "**/.DS_Store" --exclude "*.band" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case --resync >>"$RCLONE_LOG" 2>&1; then
     print_success "iCloud sync without --resync completed successfully."
   else
-    print_info "iCloud sync without --resync failed, retrying with --resync..."
+    print_status "iCloud sync without --resync failed, retrying with --resync..."
     rclone bisync "$ICLOUD_LOCALPATH" "$ICLOUD_REMOTEPATH" --exclude "**/.DS_Store" --exclude "*.band" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case --resync
     print_success "iCloud sync with --resync completed successfully."
   fi
@@ -81,10 +81,10 @@ sync_onedrive() {
     mkdir -p "$ONEDRIVE_LOCALPATH"
     print_warning "OneDrive local path $ONEDRIVE_LOCALPATH did not exist and was created."
   fi
-  if rclone bisync "$ONEDRIVE_LOCALPATH" "$ONEDRIVE_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case --check-access | print_info "OneDrive sync without --resync syncing..." >>"$RCLONE_LOG" 2>&1; then
+  if rclone bisync "$ONEDRIVE_LOCALPATH" "$ONEDRIVE_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case --check-access >>"$RCLONE_LOG" 2>&1; then
     print_success "OneDrive sync without --resync completed successfully."
   else
-    print_info "OneDrive sync without --resync failed, retrying with --resync..."
+    print_status "OneDrive sync without --resync failed, retrying with --resync..."
     rclone bisync "$ONEDRIVE_LOCALPATH" "$ONEDRIVE_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case --resync
     print_success "OneDrive sync with --resync completed successfully."
   fi
@@ -96,10 +96,10 @@ sync_it() {
     mkdir -p "$IT_LOCALPATH"
     print_warning "IT SharePoint local path $IT_LOCALPATH did not exist and was created."
   fi
-  if rclone bisync "$IT_LOCALPATH" "$IT_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case | print_info "IT SharePoint sync without --resync syncing..." >>"$RCLONE_LOG" 2>&1; then
+  if rclone bisync "$IT_LOCALPATH" "$IT_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case >>"$RCLONE_LOG" 2>&1; then
     print_success "IT SharePoint sync without --resync completed successfully."
   else
-    print_info "IT SharePoint sync without --resync failed, retrying with --resync..."
+    print_status "IT SharePoint sync without --resync failed, retrying with --resync..."
     rclone bisync "$IT_LOCALPATH" "$IT_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case --resync
     print_success "IT SharePoint sync with --resync completed successfully."
   fi
@@ -111,10 +111,10 @@ sync_ot() {
     mkdir -p "$OT_LOCALPATH"
     print_warning "OT SharePoint local path $OT_LOCALPATH did not exist and was created."
   fi
-  if rclone bisync "$OT_LOCALPATH" "$OT_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case | print_info "OT SharePoint sync without --resync syncing..." >>"$RCLONE_LOG" 2>&1; then
+  if rclone bisync "$OT_LOCALPATH" "$OT_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case >>"$RCLONE_LOG" 2>&1; then
     print_success "OT SharePoint sync without --resync completed successfully."
   else
-    print_info "OT SharePoint sync without --resync failed, retrying with --resync..."
+    print_status "OT SharePoint sync without --resync failed, retrying with --resync..."
     rclone bisync "$OT_LOCALPATH" "$OT_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case --resync
     print_success "OT SharePoint sync with --resync completed successfully."
   fi
@@ -126,10 +126,10 @@ sync_school() {
     mkdir -p "$SCHOOL_LOCALPATH"
     print_warning "School SharePoint local path $SCHOOL_LOCALPATH did not exist and was created."
   fi
-  if rclone bisync "$SCHOOL_LOCALPATH" "$SCHOOL_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case | print_info "School SharePoint sync without --resync syncing..." >>"$RCLONE_LOG" 2>&1; then
+  if rclone bisync "$SCHOOL_LOCALPATH" "$SCHOOL_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case >>"$RCLONE_LOG" 2>&1; then
     print_success "School SharePoint sync without --resync completed successfully."
   else
-    print_info "School SharePoint sync without --resync failed, retrying with --resync..."
+    print_status "School SharePoint sync without --resync failed, retrying with --resync..."
     rclone bisync "$SCHOOL_LOCALPATH" "$SCHOOL_REMOTEPATH" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient -MvP --drive-skip-gdocs --fix-case --resync
     print_success "School SharePoint sync with --resync completed successfully."
   fi
