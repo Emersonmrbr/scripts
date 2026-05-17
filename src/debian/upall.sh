@@ -45,6 +45,7 @@ case "$1" in
 --all | -a)
   sudo apt-get update --yes
   sudo apt-get upgrade --yes
+  sudo apt-get dist-upgrade --yes
   sudo apt-get autoremove --yes
   sudo apt-get autoclean --yes
   echo "Update and upgrade completed successfully."
@@ -57,6 +58,7 @@ case "$1" in
   ;;
 --upgrade | -g)
   sudo apt-get upgrade --yes
+  sudo apt-get dist-upgrade --yes
   echo "Packages upgraded successfully."
   exit 0
   ;;
