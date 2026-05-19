@@ -18,8 +18,6 @@ echo "Author: Emerson Martins Brito"
 echo "Version: 1.1.0"
 echo "Timestamp: $DATE"
 echo "=============================================="
-echo "Starting system update and upgrade process..."
-echo "Updating and upgrading the system..."
 echo "This may take a few minutes. Please wait..."
 echo ""
 
