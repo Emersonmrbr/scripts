@@ -22,6 +22,7 @@ readonly IT_REMOTE="it:"
 readonly OT_REMOTE="ot:"
 readonly SCHOOL_REMOTE="school:"
 readonly OZ3_REMOTE="oz3:"
+RCLONE_OPTIONAL_FLAGS=()
 if [ -f "$HOME/logs/syncp.log" ]; then
   readonly SYNCP_LOG="$HOME/logs/syncp.log"
 else
@@ -73,6 +74,61 @@ print_error() {
   sync_log "ERROR: $1"
 }
 
+# Build optional rclone flags without forcing incompatible combinations (like -v and -q).
+set_rclone_optional_flags() {
+  local has_verbosity=0
+  local has_ignore_errors=0
+
+  RCLONE_OPTIONAL_FLAGS=()
+
+  for arg in "$@"; do
+    case "$arg" in
+    -q | --quiet | -v | --verbose | -vv | -vvv)
+      has_verbosity=1
+      RCLONE_OPTIONAL_FLAGS+=("$arg")
+      ;;
+    --ignore-errors)
+      has_ignore_errors=1
+      RCLONE_OPTIONAL_FLAGS+=("$arg")
+      ;;
+    esac
+  done
+
+  if [[ $has_verbosity -eq 0 ]]; then
+    RCLONE_OPTIONAL_FLAGS+=("--quiet")
+  fi
+
+  if [[ $has_ignore_errors -eq 0 ]]; then
+    RCLONE_OPTIONAL_FLAGS+=("--ignore-errors")
+  fi
+}
+
+# Ensure rclone check-access marker exists on both sides.
+ensure_check_access_marker() {
+  local local_path="$1"
+  local remote_path="$2"
+  local marker_file="$local_path/RCLONE_TEST"
+  local marker_remote="${remote_path}RCLONE_TEST"
+
+  if [[ ! -f "$marker_file" ]]; then
+    if sudo touch "$marker_file"; then
+      print_status "Created check-access marker: $marker_file"
+    else
+      print_warning "Could not create check-access marker: $marker_file"
+    fi
+  fi
+
+  if sudo rclone --config "$RCLONE_CONFIG" lsf "$marker_remote" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if sudo rclone --config "$RCLONE_CONFIG" touch "$marker_remote" >/dev/null 2>&1; then
+    print_status "Created check-access marker on remote: $marker_remote"
+  else
+    print_warning "Could not create check-access marker on remote: $marker_remote"
+  fi
+}
+
 sync_icloud() {
   print_status "Syncing iCloud files..."
   if [[ ! -d "$ICLOUD_LOCALPATH" ]]; then
@@ -83,12 +139,17 @@ sync_icloud() {
       return 1
     fi
   fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$ICLOUD_LOCALPATH" "$ICLOUD_REMOTE" --exclude "**/.DS_Store" --exclude "*.band" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
+  ensure_check_access_marker "$ICLOUD_LOCALPATH" "$ICLOUD_REMOTE"
+  if sudo rclone --config "$RCLONE_CONFIG" bisync "$ICLOUD_LOCALPATH" "$ICLOUD_REMOTE" --exclude "**/.DS_Store" --exclude "*.band" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${RCLONE_OPTIONAL_FLAGS[@]}" 2>&1; then
     print_success "iCloud sync without --resync completed successfully."
   else
     print_status "iCloud sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$ICLOUD_LOCALPATH" "$ICLOUD_REMOTE" --exclude "**/.DS_Store" --exclude "*.band" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "iCloud sync with --resync completed successfully."
+    if sudo rclone --config "$RCLONE_CONFIG" bisync "$ICLOUD_LOCALPATH" "$ICLOUD_REMOTE" --exclude "**/.DS_Store" --exclude "*.band" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M; then
+      print_success "iCloud sync with --resync completed successfully."
+    else
+      print_error "iCloud sync with --resync failed. Check $RCLONE_LOG for details."
+      return 1
+    fi
   fi
 }
 
@@ -102,12 +163,17 @@ sync_onedrive() {
       return 1
     fi
   fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$ONEDRIVE_LOCALPATH" "$ONEDRIVE_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
+  ensure_check_access_marker "$ONEDRIVE_LOCALPATH" "$ONEDRIVE_REMOTE"
+  if sudo rclone --config "$RCLONE_CONFIG" bisync "$ONEDRIVE_LOCALPATH" "$ONEDRIVE_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${RCLONE_OPTIONAL_FLAGS[@]}" 2>&1; then
     print_success "OneDrive sync without --resync completed successfully."
   else
     print_status "OneDrive sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$ONEDRIVE_LOCALPATH" "$ONEDRIVE_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "OneDrive sync with --resync completed successfully."
+    if sudo rclone --config "$RCLONE_CONFIG" bisync "$ONEDRIVE_LOCALPATH" "$ONEDRIVE_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M; then
+      print_success "OneDrive sync with --resync completed successfully."
+    else
+      print_error "OneDrive sync with --resync failed. Check $RCLONE_LOG for details."
+      return 1
+    fi
   fi
 }
 
@@ -121,12 +187,17 @@ sync_it() {
       return 1
     fi
   fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$IT_LOCALPATH" "$IT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
+  ensure_check_access_marker "$IT_LOCALPATH" "$IT_REMOTE"
+  if sudo rclone --config "$RCLONE_CONFIG" bisync "$IT_LOCALPATH" "$IT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${RCLONE_OPTIONAL_FLAGS[@]}" 2>&1; then
     print_success "IT SharePoint sync without --resync completed successfully."
   else
     print_status "IT SharePoint sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$IT_LOCALPATH" "$IT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "IT SharePoint sync with --resync completed successfully."
+    if sudo rclone --config "$RCLONE_CONFIG" bisync "$IT_LOCALPATH" "$IT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M; then
+      print_success "IT SharePoint sync with --resync completed successfully."
+    else
+      print_error "IT SharePoint sync with --resync failed. Check $RCLONE_LOG for details."
+      return 1
+    fi
   fi
 }
 
@@ -140,12 +211,17 @@ sync_ot() {
       return 1
     fi
   fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$OT_LOCALPATH" "$OT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
+  ensure_check_access_marker "$OT_LOCALPATH" "$OT_REMOTE"
+  if sudo rclone --config "$RCLONE_CONFIG" bisync "$OT_LOCALPATH" "$OT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${RCLONE_OPTIONAL_FLAGS[@]}" 2>&1; then
     print_success "OT SharePoint sync without --resync completed successfully."
   else
     print_status "OT SharePoint sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$OT_LOCALPATH" "$OT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "OT SharePoint sync with --resync completed successfully."
+    if sudo rclone --config "$RCLONE_CONFIG" bisync "$OT_LOCALPATH" "$OT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M; then
+      print_success "OT SharePoint sync with --resync completed successfully."
+    else
+      print_error "OT SharePoint sync with --resync failed. Check $RCLONE_LOG for details."
+      return 1
+    fi
   fi
 }
 
@@ -159,12 +235,17 @@ sync_school() {
       return 1
     fi
   fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$SCHOOL_LOCALPATH" "$SCHOOL_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
+  ensure_check_access_marker "$SCHOOL_LOCALPATH" "$SCHOOL_REMOTE"
+  if sudo rclone --config "$RCLONE_CONFIG" bisync "$SCHOOL_LOCALPATH" "$SCHOOL_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${RCLONE_OPTIONAL_FLAGS[@]}" 2>&1; then
     print_success "School SharePoint sync without --resync completed successfully."
   else
     print_status "School SharePoint sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$SCHOOL_LOCALPATH" "$SCHOOL_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "School SharePoint sync with --resync completed successfully."
+    if sudo rclone --config "$RCLONE_CONFIG" bisync "$SCHOOL_LOCALPATH" "$SCHOOL_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M; then
+      print_success "School SharePoint sync with --resync completed successfully."
+    else
+      print_error "School SharePoint sync with --resync failed. Check $RCLONE_LOG for details."
+      return 1
+    fi
   fi
 }
 
@@ -178,12 +259,17 @@ sync_oz3() {
       return 1
     fi
   fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$OZ3_LOCALPATH" "$OZ3_REMOTE" --include "/Equipamentos/**" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
+  ensure_check_access_marker "$OZ3_LOCALPATH" "$OZ3_REMOTE"
+  if sudo rclone --config "$RCLONE_CONFIG" bisync "$OZ3_LOCALPATH" "$OZ3_REMOTE" --include "/Equipamentos/**" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${RCLONE_OPTIONAL_FLAGS[@]}" 2>&1; then
     print_success "OZ3 sync without --resync completed successfully."
   else
     print_status "OZ3 sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$OZ3_LOCALPATH" "$OZ3_REMOTE" --include "/Equipamentos/**" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "OZ3 sync with --resync completed successfully."
+    if sudo rclone --config "$RCLONE_CONFIG" bisync "$OZ3_LOCALPATH" "$OZ3_REMOTE" --include "/Equipamentos/**" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M; then
+      print_success "OZ3 sync with --resync completed successfully."
+    else
+      print_error "OZ3 sync with --resync failed. Check $RCLONE_LOG for details."
+      return 1
+    fi
   fi
 }
 
@@ -191,12 +277,13 @@ sync_oz3() {
 # MAIN EXECUTION
 #------------------------------------------------------------------------------
 main() {
-  sync_icloud "$@"
-  sync_onedrive "$@"
-  sync_it "$@"
-  sync_ot "$@"
-  sync_school "$@"
-  sync_oz3 "$@"
+  set_rclone_optional_flags "$@"
+  sync_icloud
+  sync_onedrive
+  sync_it
+  sync_ot
+  sync_school
+  sync_oz3
 }
 
 main "$@"
