@@ -30,6 +30,7 @@ readonly IT_REMOTE="it:"
 readonly OT_REMOTE="ot:"
 readonly SCHOOL_REMOTE="school:"
 readonly OZ3_REMOTE="oz3:"
+RCLONE_OPTIONAL_FLAGS=()
 if [ -f "$HOME/logs/syncp.log" ]; then
   readonly SYNCP_LOG="$HOME/logs/syncp.log"
 else
@@ -94,6 +95,61 @@ print_warning() {
 print_error() {
   echo -e "${RED}[ERROR]${NC} $1"
   sync_log "ERROR: $1"
+}
+
+# Build optional rclone flags without forcing incompatible combinations (like -v and -q).
+set_rclone_optional_flags() {
+  local has_verbosity=0
+  local has_ignore_errors=0
+
+  RCLONE_OPTIONAL_FLAGS=()
+
+  for arg in "$@"; do
+    case "$arg" in
+    -q | --quiet | -v | --verbose | -vv | -vvv)
+      has_verbosity=1
+      RCLONE_OPTIONAL_FLAGS+=("$arg")
+      ;;
+    --ignore-errors)
+      has_ignore_errors=1
+      RCLONE_OPTIONAL_FLAGS+=("$arg")
+      ;;
+    esac
+  done
+
+  if [[ $has_verbosity -eq 0 ]]; then
+    RCLONE_OPTIONAL_FLAGS+=("--quiet")
+  fi
+
+  if [[ $has_ignore_errors -eq 0 ]]; then
+    RCLONE_OPTIONAL_FLAGS+=("--ignore-errors")
+  fi
+}
+
+# Ensure rclone check-access marker exists on both sides.
+ensure_check_access_marker() {
+  local local_path="$1"
+  local remote_path="$2"
+  local marker_file="$local_path/RCLONE_TEST"
+  local marker_remote="${remote_path}RCLONE_TEST"
+
+  if [[ ! -f "$marker_file" ]]; then
+    if sudo touch "$marker_file"; then
+      print_status "Created check-access marker: $marker_file"
+    else
+      print_warning "Could not create check-access marker: $marker_file"
+    fi
+  fi
+
+  if sudo rclone --config "$RCLONE_CONFIG" lsf "$marker_remote" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if sudo rclone --config "$RCLONE_CONFIG" touch "$marker_remote" >/dev/null 2>&1; then
+    print_status "Created check-access marker on remote: $marker_remote"
+  else
+    print_warning "Could not create check-access marker on remote: $marker_remote"
+  fi
 }
 
 sync_clouds() {
