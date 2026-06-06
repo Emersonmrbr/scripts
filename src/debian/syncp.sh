@@ -10,12 +10,20 @@
 #------------------------------------------------------------------------------
 # VARIABLES
 #------------------------------------------------------------------------------
+readonly ICLOUD_SYNC="icloud: /mnt/dados/Icloud"
+readonly ONEDRIVE_SYNC="onedrive: /mnt/dados/Onedrive"
+readonly IT_SYNC="it: /mnt/dados/Sharepoint/IT"
+readonly OT_SYNC="ot: /mnt/dados/Sharepoint/OT"
+readonly SCHOOL_SYNC="school: /mnt/dados/Sharepoint/School"
+readonly OZ3_SYNC="oz3: /mnt/dados/OZ3"
+readonly LOCALPATH=("/mnt/dados/Icloud" "/mnt/dados/Onedrive" "/mnt/dados/Sharepoint/IT" "/mnt/dados/Sharepoint/OT" "/mnt/dados/Sharepoint/School" "/mnt/dados/OZ3")
 readonly ICLOUD_LOCALPATH=/mnt/dados/Icloud
 readonly ONEDRIVE_LOCALPATH=/mnt/dados/Onedrive
 readonly IT_LOCALPATH=/mnt/dados/Sharepoint/IT
 readonly OT_LOCALPATH=/mnt/dados/Sharepoint/OT
 readonly SCHOOL_LOCALPATH=/mnt/dados/Sharepoint/School
 readonly OZ3_LOCALPATH=/mnt/dados/OZ3
+readonly REMOTES=("icloud:" "onedrive:" "it:" "ot:" "school:" "oz3:")
 readonly ICLOUD_REMOTE="icloud:"
 readonly ONEDRIVE_REMOTE="onedrive:"
 readonly IT_REMOTE="it:"
@@ -35,6 +43,21 @@ else
   readonly RCLONE_LOG="$HOME/logs/rclone.log"
 fi
 readonly RCLONE_CONFIG="$HOME/.config/rclone/rclone.conf"
+readonly RCLONE_FLAGS=(
+  --exclude "**/.DS_Store"
+  --exclude "Preview/**"
+  --exclude "GarageBand for iOS/**"
+  --exclude "**/.DS_Store"
+  --compare size,modtime,checksum
+  --slow-hash-sync-only
+  --resilient
+  --metadata
+  --drive-skip-gdocs
+  --fix-case
+  --check-access
+  --log-file "$RCLONE_LOG"
+  --log-file-max-size 10M
+)
 
 #------------------------------------------------------------------------------
 # COLORS AND OUTPUT FUNCTIONS
@@ -73,130 +96,65 @@ print_error() {
   sync_log "ERROR: $1"
 }
 
-sync_icloud() {
-  print_status "Syncing iCloud files..."
-  if [[ ! -d "$ICLOUD_LOCALPATH" ]]; then
-    if sudo mkdir -p "$ICLOUD_LOCALPATH"; then
-      print_warning "iCloud local path $ICLOUD_LOCALPATH did not exist and was created."
-    else
-      print_error "Failed to create iCloud local path $ICLOUD_LOCALPATH. Check permissions and try again."
-      return 1
-    fi
-  fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$ICLOUD_LOCALPATH" "$ICLOUD_REMOTE" --exclude "**/.DS_Store" --exclude "*.band" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
-    print_success "iCloud sync without --resync completed successfully."
-  else
-    print_status "iCloud sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$ICLOUD_LOCALPATH" "$ICLOUD_REMOTE" --exclude "**/.DS_Store" --exclude "*.band" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "iCloud sync with --resync completed successfully."
-  fi
-}
+sync_clouds() {
+  print_status "Syncing cloud files..."
 
-sync_onedrive() {
-  print_status "Syncing OneDrive files..."
-  if [[ ! -d "$ONEDRIVE_LOCALPATH" ]]; then
-    if sudo mkdir -p "$ONEDRIVE_LOCALPATH"; then
-      print_warning "OneDrive local path $ONEDRIVE_LOCALPATH did not exist and was created."
-    else
-      print_error "Failed to create OneDrive local path $ONEDRIVE_LOCALPATH. Check permissions and try again."
-      return 1
-    fi
-  fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$ONEDRIVE_LOCALPATH" "$ONEDRIVE_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
-    print_success "OneDrive sync without --resync completed successfully."
-  else
-    print_status "OneDrive sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$ONEDRIVE_LOCALPATH" "$ONEDRIVE_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "OneDrive sync with --resync completed successfully."
-  fi
-}
+  for i in "${!REMOTES[@]}"; do
+    localpath="${LOCALPATH[i]}"
+    remotepath="${REMOTES[i]}"
 
-sync_it() {
-  print_status "Syncing IT SharePoint files..."
-  if [[ ! -d "$IT_LOCALPATH" ]]; then
-    if sudo mkdir -p "$IT_LOCALPATH"; then
-      print_warning "IT SharePoint local path $IT_LOCALPATH did not exist and was created."
-    else
-      print_error "Failed to create IT SharePoint local path $IT_LOCALPATH. Check permissions and try again."
-      return 1
+    if [[ ! -d "$localpath" ]]; then
+      if sudo mkdir -p "$localpath"; then
+        print_warning "Local path $localpath did not exist and was created."
+      else
+        print_error "Failed to create local path $localpath. Check permissions and try again."
+        return 1
+      fi
     fi
-  fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$IT_LOCALPATH" "$IT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
-    print_success "IT SharePoint sync without --resync completed successfully."
-  else
-    print_status "IT SharePoint sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$IT_LOCALPATH" "$IT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "IT SharePoint sync with --resync completed successfully."
-  fi
-}
-
-sync_ot() {
-  print_status "Syncing OT SharePoint files..."
-  if [[ ! -d "$OT_LOCALPATH" ]]; then
-    if sudo mkdir -p "$OT_LOCALPATH"; then
-      print_warning "OT SharePoint local path $OT_LOCALPATH did not exist and was created."
+    print_status "Starting sync for $remotepath to $localpath..."
+    if [[ "$remotepath" == "oz3:" ]]; then
+      if sudo rclone --config "${RCLONE_CONFIG}" bisync "${remotepath}" "${localpath}" --include "Equipamentos/**" "${RCLONE_FLAGS[@]}" 2>&1; then
+        print_success "Sync without --resync completed successfully for $remotepath."
+      else
+        print_status "Sync without --resync failed for ${remotepath}, retrying with --resync..."
+        if sudo rclone --config "${RCLONE_CONFIG}" bisync "${remotepath}" "${localpath}" --include "Equipamentos/**" "${RCLONE_FLAGS[@]}" --resync 2>&1; then
+          print_success "Sync with --resync completed successfully for $remotepath."
+        else
+          print_error "Sync with --resync also failed for ${remotepath}. Check the $SYNCP_LOG and $RCLONE_LOG for details."
+          return 1
+        fi
+      fi
     else
-      print_error "Failed to create OT SharePoint local path $OT_LOCALPATH. Check permissions and try again."
-      return 1
+      if sudo rclone --config "${RCLONE_CONFIG}" bisync "${remotepath}" "${localpath}" "${RCLONE_FLAGS[@]}" 2>&1; then
+        print_success "Sync without --resync completed successfully for $remotepath."
+      else
+        print_status "Sync without --resync failed for ${remotepath}, retrying with --resync..."
+        if sudo rclone --config "${RCLONE_CONFIG}" bisync "${remotepath}" "${localpath}" "${RCLONE_FLAGS[@]}" --resync 2>&1; then
+          print_success "Sync with --resync completed successfully for $remotepath."
+        else
+          print_error "Sync with --resync also failed for ${remotepath}. Check the $SYNCP_LOG and $RCLONE_LOG for details."
+          return 1
+        fi
+      fi
     fi
-  fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$OT_LOCALPATH" "$OT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
-    print_success "OT SharePoint sync without --resync completed successfully."
-  else
-    print_status "OT SharePoint sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$OT_LOCALPATH" "$OT_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "OT SharePoint sync with --resync completed successfully."
-  fi
-}
-
-sync_school() {
-  print_status "Syncing School SharePoint files..."
-  if [[ ! -d "$SCHOOL_LOCALPATH" ]]; then
-    if sudo mkdir -p "$SCHOOL_LOCALPATH"; then
-      print_warning "School SharePoint local path $SCHOOL_LOCALPATH did not exist and was created."
-    else
-      print_error "Failed to create School SharePoint local path $SCHOOL_LOCALPATH. Check permissions and try again."
-      return 1
-    fi
-  fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$SCHOOL_LOCALPATH" "$SCHOOL_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
-    print_success "School SharePoint sync without --resync completed successfully."
-  else
-    print_status "School SharePoint sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$SCHOOL_LOCALPATH" "$SCHOOL_REMOTE" --exclude "**/.DS_Store" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "School SharePoint sync with --resync completed successfully."
-  fi
-}
-
-sync_oz3() {
-  print_status "Syncing OZ3 files..."
-  if [[ ! -d "$OZ3_LOCALPATH" ]]; then
-    if sudo mkdir -p "$OZ3_LOCALPATH"; then
-      print_warning "OZ3 local path $OZ3_LOCALPATH did not exist and was created."
-    else
-      print_error "Failed to create OZ3 local path $OZ3_LOCALPATH. Check permissions and try again."
-      return 1
-    fi
-  fi
-  if sudo rclone --config "$RCLONE_CONFIG" bisync "$OZ3_LOCALPATH" "$OZ3_REMOTE" --include "/Equipamentos/**" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --log-file "$RCLONE_LOG" --log-file-max-size 10M "${1:---quiet}" "${2:---ignore-errors}" 2>&1; then
-    print_success "OZ3 sync without --resync completed successfully."
-  else
-    print_status "OZ3 sync without --resync failed, retrying with --resync..."
-    sudo rclone --config "$RCLONE_CONFIG" bisync "$OZ3_LOCALPATH" "$OZ3_REMOTE" --include "/Equipamentos/**" --compare size,modtime,checksum --slow-hash-sync-only --resilient --metadata --drive-skip-gdocs --fix-case --check-access --resync --log-file "$RCLONE_LOG" --log-file-max-size 10M
-    print_success "OZ3 sync with --resync completed successfully."
-  fi
+  done
 }
 
 #------------------------------------------------------------------------------
 # MAIN EXECUTION
 #------------------------------------------------------------------------------
 main() {
-  sync_icloud "$@"
-  sync_onedrive "$@"
-  sync_it "$@"
-  sync_ot "$@"
-  sync_school "$@"
-  sync_oz3 "$@"
+  if ! command -v rclone >/dev/null 2>&1; then
+    print_error "rclone is not installed or not available in PATH."
+    return 1
+  fi
+
+  if [[ ! -f "$RCLONE_CONFIG" ]]; then
+    print_error "rclone config file not found at $RCLONE_CONFIG."
+    return 1
+  fi
+
+  sync_clouds
 }
 
 main "$@"
