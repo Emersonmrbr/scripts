@@ -10,27 +10,8 @@
 #------------------------------------------------------------------------------
 # VARIABLES
 #------------------------------------------------------------------------------
-readonly ICLOUD_SYNC="icloud: /mnt/dados/Icloud"
-readonly ONEDRIVE_SYNC="onedrive: /mnt/dados/Onedrive"
-readonly IT_SYNC="it: /mnt/dados/Sharepoint/IT"
-readonly OT_SYNC="ot: /mnt/dados/Sharepoint/OT"
-readonly SCHOOL_SYNC="school: /mnt/dados/Sharepoint/School"
-readonly OZ3_SYNC="oz3: /mnt/dados/OZ3"
 readonly LOCALPATH=("/mnt/dados/Icloud" "/mnt/dados/Onedrive" "/mnt/dados/Sharepoint/IT" "/mnt/dados/Sharepoint/OT" "/mnt/dados/Sharepoint/School" "/mnt/dados/OZ3")
-readonly ICLOUD_LOCALPATH=/mnt/dados/Icloud
-readonly ONEDRIVE_LOCALPATH=/mnt/dados/Onedrive
-readonly IT_LOCALPATH=/mnt/dados/Sharepoint/IT
-readonly OT_LOCALPATH=/mnt/dados/Sharepoint/OT
-readonly SCHOOL_LOCALPATH=/mnt/dados/Sharepoint/School
-readonly OZ3_LOCALPATH=/mnt/dados/OZ3
 readonly REMOTES=("icloud:" "onedrive:" "it:" "ot:" "school:" "oz3:")
-readonly ICLOUD_REMOTE="icloud:"
-readonly ONEDRIVE_REMOTE="onedrive:"
-readonly IT_REMOTE="it:"
-readonly OT_REMOTE="ot:"
-readonly SCHOOL_REMOTE="school:"
-readonly OZ3_REMOTE="oz3:"
-RCLONE_OPTIONAL_FLAGS=()
 if [ -f "$HOME/logs/syncp.log" ]; then
   readonly SYNCP_LOG="$HOME/logs/syncp.log"
 else
@@ -95,61 +76,6 @@ print_warning() {
 print_error() {
   echo -e "${RED}[ERROR]${NC} $1"
   sync_log "ERROR: $1"
-}
-
-# Build optional rclone flags without forcing incompatible combinations (like -v and -q).
-set_rclone_optional_flags() {
-  local has_verbosity=0
-  local has_ignore_errors=0
-
-  RCLONE_OPTIONAL_FLAGS=()
-
-  for arg in "$@"; do
-    case "$arg" in
-    -q | --quiet | -v | --verbose | -vv | -vvv)
-      has_verbosity=1
-      RCLONE_OPTIONAL_FLAGS+=("$arg")
-      ;;
-    --ignore-errors)
-      has_ignore_errors=1
-      RCLONE_OPTIONAL_FLAGS+=("$arg")
-      ;;
-    esac
-  done
-
-  if [[ $has_verbosity -eq 0 ]]; then
-    RCLONE_OPTIONAL_FLAGS+=("--quiet")
-  fi
-
-  if [[ $has_ignore_errors -eq 0 ]]; then
-    RCLONE_OPTIONAL_FLAGS+=("--ignore-errors")
-  fi
-}
-
-# Ensure rclone check-access marker exists on both sides.
-ensure_check_access_marker() {
-  local local_path="$1"
-  local remote_path="$2"
-  local marker_file="$local_path/RCLONE_TEST"
-  local marker_remote="${remote_path}RCLONE_TEST"
-
-  if [[ ! -f "$marker_file" ]]; then
-    if sudo touch "$marker_file"; then
-      print_status "Created check-access marker: $marker_file"
-    else
-      print_warning "Could not create check-access marker: $marker_file"
-    fi
-  fi
-
-  if sudo rclone --config "$RCLONE_CONFIG" lsf "$marker_remote" >/dev/null 2>&1; then
-    return 0
-  fi
-
-  if sudo rclone --config "$RCLONE_CONFIG" touch "$marker_remote" >/dev/null 2>&1; then
-    print_status "Created check-access marker on remote: $marker_remote"
-  else
-    print_warning "Could not create check-access marker on remote: $marker_remote"
-  fi
 }
 
 sync_clouds() {
