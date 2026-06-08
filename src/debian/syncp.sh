@@ -29,7 +29,7 @@ readonly RCLONE_FLAGS=(
   --exclude "**/.DS_Store"
   --exclude "Preview/**"
   --exclude "GarageBand for iOS/**"
-  --exclude "**/.DS_Store"
+  --exclude "*.band"
   --compare size,modtime,checksum
   --slow-hash-sync-only
   --resilient
@@ -78,65 +78,86 @@ print_error() {
   sync_log "ERROR: $1"
 }
 
-sync_clouds() {
-  print_status "Syncing cloud files..."
+if ! command -v rclone >/dev/null 2>&1; then
+  print_error "rclone is not installed or not available in PATH."
+  return 1
+fi
 
-  for i in "${!REMOTES[@]}"; do
-    localpath="${LOCALPATH[i]}"
-    remotepath="${REMOTES[i]}"
+if [[ ! -f "$RCLONE_CONFIG" ]]; then
+  print_error "rclone config file not found at $RCLONE_CONFIG."
+  return 1
+fi
 
-    if [[ ! -d "$localpath" ]]; then
-      if sudo mkdir -p "$localpath"; then
-        print_warning "Local path $localpath did not exist and was created."
+# Ensure rclone check-access marker exists on both sides.
+ensure_check_access_marker() {
+  local local_path="$1"
+  local remote_path="$2"
+  local marker_file="$local_path/RCLONE_TEST"
+  local marker_remote="${remote_path}RCLONE_TEST"
+
+  if [[ ! -f "$marker_file" ]]; then
+    if sudo touch "$marker_file"; then
+      print_status "Created check-access marker: $marker_file"
+    else
+      print_warning "Could not create check-access marker: $marker_file"
+    fi
+  fi
+
+  if sudo rclone --config "$RCLONE_CONFIG" lsf "$marker_remote" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if sudo rclone --config "$RCLONE_CONFIG" touch "$marker_remote" >/dev/null 2>&1; then
+    print_status "Created check-access marker on remote: $marker_remote"
+  else
+    print_warning "Could not create check-access marker on remote: $marker_remote"
+  fi
+}
+
+if [[ "${#REMOTES[@]}" -ne "${#LOCALPATH[@]}" ]]; then
+  print_error "The number of remotes and local paths do not match. Please check the configuration."
+  return 1
+fi
+
+print_status "Syncing cloud files..."
+
+for i in "${!REMOTES[@]}"; do
+
+  if [[ ! -d "${LOCALPATH[i]}" ]]; then
+    if sudo mkdir -p "${LOCALPATH[i]}"; then
+      print_warning "Local path ${LOCALPATH[i]} did not exist and was created."
+    else
+      print_error "Failed to create local path ${LOCALPATH[i]}. Check permissions and try again."
+      return 1
+    fi
+  fi
+
+  ensure_check_access_marker "${LOCALPATH[i]}" "${REMOTES[i]}"
+
+  print_status "Starting sync for ${REMOTES[i]} to ${LOCALPATH[i]}..."
+  if [[ "${REMOTES[i]}" == "oz3:" ]]; then
+    if sudo rclone --config "${RCLONE_CONFIG}" bisync "${REMOTES[i]}" "${LOCALPATH[i]}" "${RCLONE_FLAGS[@]}" --include "Equipamentos/**" 2>&1; then
+      print_success "Sync without --resync completed successfully for ${REMOTES[i]}."
+    else
+      print_status "Sync without --resync failed for ${REMOTES[i]}, retrying with --resync..."
+      if sudo rclone --config "${RCLONE_CONFIG}" bisync "${REMOTES[i]}" "${LOCALPATH[i]}" "${RCLONE_FLAGS[@]}" --include "Equipamentos/**" --resync 2>&1; then
+        print_success "Sync with --resync completed successfully for ${REMOTES[i]}."
       else
-        print_error "Failed to create local path $localpath. Check permissions and try again."
+        print_error "Sync with --resync also failed for ${REMOTES[i]}. Check the $SYNCP_LOG and $RCLONE_LOG for details."
         return 1
       fi
     fi
-    print_status "Starting sync for $remotepath to $localpath..."
-    if [[ "$remotepath" == "oz3:" ]]; then
-      if sudo rclone --config "${RCLONE_CONFIG}" bisync "${remotepath}" "${localpath}" --include "Equipamentos/**" "${RCLONE_FLAGS[@]}" 2>&1; then
-        print_success "Sync without --resync completed successfully for $remotepath."
-      else
-        print_status "Sync without --resync failed for ${remotepath}, retrying with --resync..."
-        if sudo rclone --config "${RCLONE_CONFIG}" bisync "${remotepath}" "${localpath}" --include "Equipamentos/**" "${RCLONE_FLAGS[@]}" --resync 2>&1; then
-          print_success "Sync with --resync completed successfully for $remotepath."
-        else
-          print_error "Sync with --resync also failed for ${remotepath}. Check the $SYNCP_LOG and $RCLONE_LOG for details."
-          return 1
-        fi
-      fi
+  else
+    if sudo rclone --config "${RCLONE_CONFIG}" bisync "${REMOTES[i]}" "${LOCALPATH[i]}" "${RCLONE_FLAGS[@]}" 2>&1; then
+      print_success "Sync without --resync completed successfully for ${REMOTES[i]}."
     else
-      if sudo rclone --config "${RCLONE_CONFIG}" bisync "${remotepath}" "${localpath}" "${RCLONE_FLAGS[@]}" 2>&1; then
-        print_success "Sync without --resync completed successfully for $remotepath."
+      print_status "Sync without --resync failed for ${REMOTES[i]}, retrying with --resync..."
+      if sudo rclone --config "${RCLONE_CONFIG}" bisync "${REMOTES[i]}" "${LOCALPATH[i]}" "${RCLONE_FLAGS[@]}" --resync 2>&1; then
+        print_success "Sync with --resync completed successfully for ${REMOTES[i]}."
       else
-        print_status "Sync without --resync failed for ${remotepath}, retrying with --resync..."
-        if sudo rclone --config "${RCLONE_CONFIG}" bisync "${remotepath}" "${localpath}" "${RCLONE_FLAGS[@]}" --resync 2>&1; then
-          print_success "Sync with --resync completed successfully for $remotepath."
-        else
-          print_error "Sync with --resync also failed for ${remotepath}. Check the $SYNCP_LOG and $RCLONE_LOG for details."
-          return 1
-        fi
+        print_error "Sync with --resync also failed for ${REMOTES[i]}. Check the $SYNCP_LOG and $RCLONE_LOG for details."
+        return 1
       fi
     fi
-  done
-}
-
-#------------------------------------------------------------------------------
-# MAIN EXECUTION
-#------------------------------------------------------------------------------
-main() {
-  if ! command -v rclone >/dev/null 2>&1; then
-    print_error "rclone is not installed or not available in PATH."
-    return 1
   fi
-
-  if [[ ! -f "$RCLONE_CONFIG" ]]; then
-    print_error "rclone config file not found at $RCLONE_CONFIG."
-    return 1
-  fi
-
-  sync_clouds
-}
-
-main "$@"
+done
