@@ -35,6 +35,7 @@ readonly RCLONE_FLAGS=(
   --check-access
   --log-file "$RCLONE_LOG"
   --log-file-max-size 10M
+  --progress
 )
 readonly RCLONE_EXCLUDE=(
   --exclude "Preview/**"
