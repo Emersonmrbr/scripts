@@ -12,17 +12,17 @@
 #------------------------------------------------------------------------------
 readonly LOCALPATH=("/mnt/dados/Icloud" "/mnt/dados/Onedrive" "/mnt/dados/Sharepoint/IT" "/mnt/dados/Sharepoint/OT" "/mnt/dados/Sharepoint/School" "/mnt/dados/OZ3")
 readonly REMOTES=("icloud:" "onedrive:" "it:" "ot:" "school:" "oz3:")
-if [ -f "/home/emerson/logs/syncp.log" ]; then
-  readonly SYNCP_LOG="/home/emerson/logs/syncp.log"
+if [ -f "/var/log/syncp.log" ]; then
+  readonly SYNCP_LOG="/var/log/syncp.log"
 else
-  mkdir -p "/home/emerson/logs"
-  readonly SYNCP_LOG="/home/emerson/logs/syncp.log"
+  mkdir -p "/var/log"
+  readonly SYNCP_LOG="/var/log/syncp.log"
 fi
-if [ -f "/home/emerson/logs/rclone.log" ]; then
-  readonly RCLONE_LOG="/home/emerson/logs/rclone.log"
+if [ -f "/var/log/rclone.log" ]; then
+  readonly RCLONE_LOG="/var/log/rclone.log"
 else
-  mkdir -p "/home/emerson/logs"
-  readonly RCLONE_LOG="/home/emerson/logs/rclone.log"
+  mkdir -p "/var/log"
+  readonly RCLONE_LOG="/var/log/rclone.log"
 fi
 readonly RCLONE_CONFIG="/home/emerson/.config/rclone/rclone.conf"
 readonly RCLONE_FLAGS=(
