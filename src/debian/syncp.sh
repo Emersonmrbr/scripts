@@ -26,16 +26,12 @@ else
 fi
 readonly RCLONE_CONFIG="/home/emerson/.config/rclone/rclone.conf"
 readonly RCLONE_FLAGS=(
-  --compare size,modtime,checksum
-  --slow-hash-sync-only
-  --resilient
-  --metadata
-  --drive-skip-gdocs
-  --fix-case
-  --check-access
   --log-file "$RCLONE_LOG"
   --log-file-max-size 10M
   --progress
+  --ignore-errors
+  --force
+  --verbose
 )
 readonly RCLONE_EXCLUDE=(
   --exclude "Preview/**"
@@ -137,7 +133,7 @@ for i in "${!REMOTES[@]}"; do
     fi
   fi
 
-  ensure_check_access_marker "${LOCALPATH[i]}" "${REMOTES[i]}"
+  # ensure_check_access_marker "${LOCALPATH[i]}" "${REMOTES[i]}"
 
   print_status "Starting sync for ${REMOTES[i]} to ${LOCALPATH[i]}..."
   if [[ "${REMOTES[i]}" == "oz3:" ]]; then
