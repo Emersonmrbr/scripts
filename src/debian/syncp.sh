@@ -41,6 +41,8 @@ readonly RCLONE_EXCLUDE=(
 readonly RCLONE_INCLUDE=(
   --include "Equipamentos/**"
 )
+SUCCESS_REMOTES=()
+FAILED_REMOTES=()
 
 #------------------------------------------------------------------------------
 # COLORS AND OUTPUT FUNCTIONS
@@ -139,11 +141,14 @@ for i in "${!REMOTES[@]}"; do
   if [[ "${REMOTES[i]}" == "oz3:" ]]; then
     if sudo rclone --config "${RCLONE_CONFIG}" bisync "${REMOTES[i]}" "${LOCALPATH[i]}" "${RCLONE_FLAGS[@]}" "${RCLONE_INCLUDE[@]}" 2>&1; then
       print_success "Sync without --resync completed successfully for ${REMOTES[i]}."
+      SUCCESS_REMOTES+=("${REMOTES[i]}")
     else
       print_status "Sync without --resync failed for ${REMOTES[i]}, retrying with --resync..."
       if sudo rclone --config "${RCLONE_CONFIG}" bisync "${REMOTES[i]}" "${LOCALPATH[i]}" "${RCLONE_FLAGS[@]}" "${RCLONE_INCLUDE[@]}" --resync 2>&1; then
         print_success "Sync with --resync completed successfully for ${REMOTES[i]}."
+        SUCCESS_REMOTES+=("${REMOTES[i]}")
       else
+        FAILED_REMOTES+=("${REMOTES[i]}")
         print_error "Sync with --resync also failed for ${REMOTES[i]}. Check the $SYNCP_LOG and $RCLONE_LOG for details."
         exit 1
       fi
@@ -151,14 +156,23 @@ for i in "${!REMOTES[@]}"; do
   else
     if sudo rclone --config "${RCLONE_CONFIG}" bisync "${REMOTES[i]}" "${LOCALPATH[i]}" "${RCLONE_FLAGS[@]}" "${RCLONE_EXCLUDE[@]}" 2>&1; then
       print_success "Sync without --resync completed successfully for ${REMOTES[i]}."
+      SUCCESS_REMOTES+=("${REMOTES[i]}")
     else
       print_status "Sync without --resync failed for ${REMOTES[i]}, retrying with --resync..."
       if sudo rclone --config "${RCLONE_CONFIG}" bisync "${REMOTES[i]}" "${LOCALPATH[i]}" "${RCLONE_FLAGS[@]}" "${RCLONE_EXCLUDE[@]}" --resync 2>&1; then
         print_success "Sync with --resync completed successfully for ${REMOTES[i]}."
+        SUCCESS_REMOTES+=("${REMOTES[i]}")
       else
+        FAILED_REMOTES+=("${REMOTES[i]}")
         print_error "Sync with --resync also failed for ${REMOTES[i]}. Check the $SYNCP_LOG and $RCLONE_LOG for details."
         exit 1
       fi
     fi
   fi
 done
+
+if [[ ${#FAILED_REMOTES[@]} -gt 0 ]]; then
+  print_error "Sync operations failed for the following remotes: ${FAILED_REMOTES[*]}. Check $SYNCP_LOG and $RCLONE_LOG for details."
+  exit 1
+fi
+print_success "All sync operations completed successfully. See $SYNCP_LOG and $RCLONE_LOG for details."
