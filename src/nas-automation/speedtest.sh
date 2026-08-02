@@ -254,9 +254,9 @@ save_to_database() {
     return 1
   fi
 
-  print_success "Results saved to database successfully in $DB_NAME.results on $DB_HOST:$DB_PORT"
   print_status "Record count before insert: $before_count, after insert: $after_count"
   print_status "Download: $DOWNLOAD Mbps, Upload: $UPLOAD Mbps, Jitter: $JITTER ms, Latency: $LATENCY ms, Packet Loss: $PACKETLOSS%, Result URL: $RESULT_URL"
+  print_success "Results saved to database successfully in $DB_NAME.results on $DB_HOST:$DB_PORT"
   return 0
 }
 
