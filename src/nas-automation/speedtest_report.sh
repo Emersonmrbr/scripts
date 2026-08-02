@@ -3,8 +3,37 @@
 #------------------------------------------------------------------------------
 # VARIABLES
 #------------------------------------------------------------------------------
-# DOWNLOAD="" UPLOAD="" JITTER="" LATENCY="" DATETIME="" RESULT_URL="" SERVER="" RESULT_ID="" EXTERNAL_IP="" PACKETLOSS="" INTERNAL_IP=""
+MINDOWNLOAD="" MINUPLOAD="" MAXLATENCY="" MAXJITTER="" AVERAGEDOWNLOAD="" AVERAGEUPLOAD="" AVERAGELATENCY="" AVERAGEJITTER="" AVERAGEPACKETLOSS="" STARTDATE="" ENDDATE="" YEAR="" MONTH="" TOTALMEASUREMENTS=""
 DB_HOST="" DB_PORT="" DB_USER="" DB_PASSWORD="" DB_NAME=""
+
+TODAY=$(date +%Y-%m-01)
+LASTDAYLASTMONTH=$(date -d "$TODAY -1 day" +%Y-%m-%d)
+FIRSTDAYLASTMONTH=$(date -d "$(date -d "$LASTDAYLASTMONTH" +%Y-%m-01)" +%Y-%m-%d)
+
+MONTHYEAR=$(date -d "$LASTDAYLASTMONTH" +%m/%Y)
+STARTDATE=$(date -d "$FIRSTDAYLASTMONTH" +%d/%m/%Y)
+ENDDATE=$(date -d "$LASTDAYLASTMONTH" +%d/%m/%Y)
+MONTHFILE=$(date -d "$LASTDAYLASTMONTH" +%Y_%m)
+
+EMPRESA="Núcleo MAP - Máquinas, Automação e Programação"
+CNPJ="30.945.466/0001-20"
+RESPONSAVEL_TECNICO="Emerson Martins Brito"
+CARGO="Especialista em automação"
+CONTATO="emerson@nucleomap.com.br"
+
+TEMPLATE_PATH="template_relatorio.md"
+OUTPUT_DIR="/volume1/Reports"
+
+CONTRACTED_SPEED_MBPS=1000
+MINIMUM_ACCEPTABLE_MBPS_DOWNLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.4" | bc)  # 40% of the contractored speed
+MINIMUM_ACCEPTABLE_MBPS_UPLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.2" | bc)  # 20% of the contractored speed
+AVERAGE_ACCEPTABLE_MBPS_DOWNLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.8" | bc)  # 80% of the contractored speed
+AVERAGE_ACCEPTABLE_MBPS_UPLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.4" | bc)  # 40% of the contractored speed
+MAXIMUM_ACCEPTABLE_PING_MS=40
+MONTHLY_TECHNICAL_ANALYSIS=""
+
+ANALYSIS=""
+
 # Backup Configuration
 readonly LOG_FILE="/volume1/logs/speedtest.log"
 
@@ -119,20 +148,20 @@ read_from_database() {
   print_status "Reading data from database..."
   read -r -d '' query <<'SQL'
 SELECT
-  MIN(download) AS minimum_download,
-  MIN(upload) AS minimum_upload,
-  MAX(latency) AS maximum_latency,
-  MAX(jitter) AS maximum_jitter,
-  ROUND(AVG(download), 2) AS average_download,
-  ROUND(AVG(upload), 2) AS average_upload,
-  ROUND(AVG(latency), 2) AS average_latency,
-  ROUND(AVG(jitter), 2) AS average_jitter,
-  ROUND(AVG(packetloss), 2) AS average_packet_loss,
-  DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01') AS start_date,
-  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS end_date,
-  DATE_FORMAT(CURRENT_DATE, '%Y') AS year,
-  DATE_FORMAT(CURRENT_DATE, '%m') AS month,
-  COUNT(*) AS total_measurements
+  MIN(download) AS MINDOWNLOAD,
+  MIN(upload) AS MINUPLOAD,
+  MAX(latency) AS MAXLATENCY,
+  MAX(jitter) AS MAXJITTER,
+  ROUND(AVG(download), 2) AS AVERAGEDOWNLOAD,
+  ROUND(AVG(upload), 2) AS AVERAGEUPLOAD,
+  ROUND(AVG(latency), 2) AS AVERAGELATENCY,
+  ROUND(AVG(jitter), 2) AS AVERAGEJITTER,
+  ROUND(AVG(packetloss), 2) AS AVERAGEPACKETLOSS,
+  DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01') AS STARTDATE,
+  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS ENDDATE,
+  DATE_FORMAT(CURRENT_DATE, '%Y') AS YEAR,
+  DATE_FORMAT(CURRENT_DATE, '%m') AS MONTH,
+  COUNT(*) AS TOTALMEASUREMENTS
 FROM results
 WHERE datetime >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
 AND datetime < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
@@ -145,21 +174,74 @@ SQL
     print_warning "No data found for the specified date range."
     exit 0
   fi
-  IFS=$'\t' read -r minimum_download minimum_upload maximum_latency maximum_jitter average_download average_upload average_latency average_jitter average_packet_loss start_date end_date year month total_measurements <<<"$dados"
+  IFS=$'\t' read -r MINDOWNLOAD MINUPLOAD MAXLATENCY MAXJITTER AVERAGEDOWNLOAD AVERAGEUPLOAD AVERAGELATENCY AVERAGEJITTER AVERAGEPACKETLOSS STARTDATE ENDDATE YEAR MONTH TOTALMEASUREMENTS <<<"$dados"
   print_success "Data retrieved successfully"
 
-  echo "Minimum Download: $minimum_download Mbps"
-  echo "Minimum Upload: $minimum_upload Mbps"
-  echo "Maximum Latency: $maximum_latency ms"
-  echo "Maximum Jitter: $maximum_jitter ms"
-  echo "Average Download: $average_download Mbps"
-  echo "Average Upload: $average_upload Mbps"
-  echo "Average Latency: $average_latency ms"
-  echo "Average Jitter: $average_jitter ms"
-  echo "Average Packet Loss: $average_packet_loss %"
-  echo "Date Range: $start_date to $end_date"
-  echo "Total Measurements: $total_measurements"
-  echo "Year: $year, Month: $month"
+  echo "Minimum Download: $MINDOWNLOAD Mbps"
+  echo "Minimum Upload: $MINUPLOAD Mbps"
+  echo "Maximum Latency: $MAXLATENCY ms"
+  echo "Maximum Jitter: $MAXJITTER ms"
+  echo "Average Download: $AVERAGEDOWNLOAD Mbps"
+  echo "Average Upload: $AVERAGEUPLOAD Mbps"
+  echo "Average Latency: $AVERAGELATENCY ms"
+  echo "Average Jitter: $AVERAGEJITTER ms"
+  echo "Average Packet Loss: $AVERAGEPACKETLOSS %"
+  echo "Date Range: $STARTDATE to $ENDDATE"
+  echo "Total Measurements: $TOTALMEASUREMENTS"
+  echo "Year: $YEAR, Month: $MONTH"
+}
+
+generate_technical_analysis() {
+
+    ANALYSIS+=$(cat <<'EOF'
+Durante o período avaliado, os indicadores de desempenho
+        apresentaram comportamento compatível com o perfil do serviço monitorado.
+EOF
+    )
+
+    if [[ -n "$MINDOWNLOAD" && "$MINDOWNLOAD" -lt "$MINIMUM_ACCEPTABLE_MBPS_DOWNLOAD" ]]; then
+        ANALYSIS+=$(cat <<EOF
+**Alerta:** Velocidade mínima de download abaixo do esperado (${MINDOWNLOAD} Mbps).
+EOF
+        )
+    fi
+
+    if [[ -n "$MINUPLOAD" && "$MINUPLOAD" -lt "$MINIMUM_ACCEPTABLE_MBPS_UPLOAD" ]]; then
+        ANALYSIS+=$(cat <<EOF
+**Alerta:** Velocidade mínima de upload abaixo do esperado (${MINUPLOAD} Mbps).
+EOF
+        )
+    fi
+
+    if [[ -n "$AVERAGEDOWNLOAD" && "$AVERAGEDOWNLOAD" -lt "$AVERAGE_ACCEPTABLE_MBPS_DOWNLOAD" ]]; then
+        ANALYSIS+=$(cat <<EOF
+**Alerta:** Média mensal de download abaixo do esperado (${AVERAGEDOWNLOAD} Mbps).
+EOF
+        )
+    fi
+
+    if [[ -n "$AVERAGEUPLOAD" && "$AVERAGEUPLOAD" -lt "$AVERAGE_ACCEPTABLE_MBPS_UPLOAD" ]]; then
+        ANALYSIS+=$(cat <<EOF
+**Alerta:** Média mensal de upload abaixo do esperado (${AVERAGEUPLOAD} Mbps).
+EOF
+        )
+    fi
+
+    if [[ -n "$MAXLATENCY" && "$MAXLATENCY" -gt "$MAXIMUM_ACCEPTABLE_PING_MS" ]]; then
+        ANALYSIS+=$(cat <<EOF
+**Alerta:** Latência máxima registrada acima do aceitável (${MAXLATENCY} ms).
+EOF
+        )
+    fi
+
+    if [[ ${#ANALYSIS[@]} -eq 1 ]]; then
+        ANALYSIS+=$(cat <<EOF
+Não foram observadas degradações persistentes que comprometessem a qualidade da conexão durante o mês de referência.
+EOF
+        )
+    fi
+
+    return 0
 }
 
 #------------------------------------------------------------------------------
