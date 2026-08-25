@@ -125,7 +125,7 @@ check_dependencies() {
 test_speed() {
   print_status "Running speedtest..."
   local result=""
-  if ! result=$(speedtest --format=json 2>>"$LOG_FILE" | jq -c 'select(.type == "result")'); then
+  if ! result=$(speedtest --format=json --accept-gdpr 2>>"$LOG_FILE" | jq -c 'select(.type == "result")'); then
     print_error "Speedtest failed"
     return 1
   fi
