@@ -1,0 +1,22 @@
+{
+  "name": "scripts",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "timonwong.shellcheck",
+        "ms-python.python"
+      ]
+    }
+  },
+  "postCreateCommand": "pip install --user -r src/nas-automation/requirements.txt"
+}

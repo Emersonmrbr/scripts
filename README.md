@@ -223,7 +223,7 @@ Many scripts use standardized environment variables:
 # Common variables
 export SCRIPT_LOG_LEVEL="INFO"
 export SCRIPT_CONFIG_DIR="/etc/scripts"
-export SCRIPT_LOG_DIR="/var/log/scripts"
+export SCRIPT_LOG_DIR="/volume1/logs/scripts"
 export SCRIPT_BACKUP_DIR="/backup"
 
 # Cloud-specific

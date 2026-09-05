@@ -125,7 +125,7 @@ check_dependencies() {
 test_speed() {
   print_status "Running speedtest..."
   local result=""
-  if ! result=$(speedtest --format=json 2>>"$LOG_FILE" | jq -c 'select(.type == "result")'); then
+  if ! result=$(speedtest --format=json --accept-gdpr 2>>"$LOG_FILE" | jq -c 'select(.type == "result")'); then
     print_error "Speedtest failed"
     return 1
   fi
@@ -254,6 +254,8 @@ save_to_database() {
     return 1
   fi
 
+  print_status "Record count before insert: $before_count, after insert: $after_count"
+  print_status "Download: $DOWNLOAD Mbps, Upload: $UPLOAD Mbps, Jitter: $JITTER ms, Latency: $LATENCY ms, Packet Loss: $PACKETLOSS%, Result URL: $RESULT_URL"
   print_success "Results saved to database successfully in $DB_NAME.results on $DB_HOST:$DB_PORT"
   return 0
 }

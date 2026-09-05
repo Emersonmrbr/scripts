@@ -1,0 +1,7 @@
+# Let Git normalize line endings for text files, but force LF for scripts
+# that get parsed by bash/python on Linux (NAS, WSL) regardless of what
+# platform last touched them.
+* text=auto
+
+*.sh text eol=lf
+*.py text eol=lf

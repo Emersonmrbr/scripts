@@ -4,7 +4,7 @@
 # Update and Upgrade Script
 # Description: This script updates and upgrades the system using apt package manager.
 # Author: Emerson Martins Brito
-# Version: 1.1.0
+# Version: 1.1.1
 #==============================================================================
 
 DATE=$(date +"%Y-%m-%d %H:%M:%S")
@@ -41,24 +41,31 @@ case "$1" in
   exit 0
   ;;
 --all | -a)
-  sudo apt-get update --yes
-  sudo apt-get upgrade --yes
-  sudo apt-get dist-upgrade --yes
-  sudo apt-get autoremove --yes
-  sudo apt-get autoclean --yes
-  echo "Update and upgrade completed successfully."
+if sudo apt-get update --yes && sudo apt-get upgrade --yes && sudo apt-get dist-upgrade --yes && sudo apt-get autoremove --yes && sudo apt-get autoclean --yes; then
+  echo "System updated and upgraded successfully."
   exit 0
+else
+  echo "An error occurred during the update and upgrade process."
+  exit 1
+fi
   ;;
 --update | -u)
-  sudo apt-get update --yes
-  echo "Package lists updated successfully."
-  exit 0
+  if sudo apt-get update --yes; then
+    echo "Package lists updated successfully."
+    exit 0
+  else
+    echo "An error occurred while updating package lists."
+    exit 1
+  fi
   ;;
 --upgrade | -g)
-  sudo apt-get upgrade --yes
-  sudo apt-get dist-upgrade --yes
-  echo "Packages upgraded successfully."
-  exit 0
+  if sudo apt-get upgrade --yes && sudo apt-get dist-upgrade --yes; then
+    echo "Packages upgraded successfully."
+    exit 0
+  else
+    echo "An error occurred while upgrading packages."
+    exit 1
+  fi
   ;;
 *)
   echo "Invalid option: $1"
