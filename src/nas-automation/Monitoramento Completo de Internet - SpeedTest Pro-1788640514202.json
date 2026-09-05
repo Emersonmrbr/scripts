@@ -2089,7 +2089,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n  DATE_FORMAT(createdat, '%Y %M') AS Month,\n  AVG(download) AS 'Average Download',\n  AVG(upload) AS 'Average Upload',\n  AVG(latency) AS 'Average Latency',\n  CASE \n    WHEN AVG(download) < 800 THEN '⚠️ Download Low'\n    WHEN AVG(upload) < 200 THEN '⚠️ Upload Low'\n    WHEN AVG(latency) > 40 THEN '⚠️ High Latency'\n    ELSE '✅ Normal'\n  END AS Alert\nFROM results\nWHERE \n   $__timeFilter(createdat)\nGROUP BY YEAR(createdat), MONTH(createdat)\nORDER BY YEAR(createdat), MONTH(createdat);\n",
+          "rawSql": "SELECT \n    DATE_FORMAT(createdat, '%Y %M') AS Month,\n    AVG(download) AS `Average Download`,\n    AVG(upload) AS `Average Upload`,\n    AVG(latency) AS `Average Latency`,\n    CASE \n        WHEN AVG(download) < 800 THEN '⚠️ Download Low'\n        WHEN AVG(upload) < 200 THEN '⚠️ Upload Low'\n        WHEN AVG(latency) > 40 THEN '⚠️ High Latency'\n        ELSE '✅ Normal'\n    END AS Alert\nFROM results\nWHERE YEAR(createdat) = YEAR(CURRENT_DATE())\nGROUP BY YEAR(createdat), MONTH(createdat), DATE_FORMAT(createdat, '%Y %M')\nORDER BY YEAR(createdat), MONTH(createdat);",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2126,12 +2126,12 @@
     "list": []
   },
   "time": {
-    "from": "now-2y",
+    "from": "now-7d",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Monitoramento Completo de Internet - SpeedTest Pro",
   "uid": "speedtest-complete",
-  "version": 59
+  "version": 60
 }
