@@ -150,7 +150,7 @@ for i in "${!REMOTES[@]}"; do
       else
         FAILED_REMOTES+=("${REMOTES[i]}")
         print_error "Sync with --resync also failed for ${REMOTES[i]}. Check the $SYNCP_LOG and $RCLONE_LOG for details."
-        exit 1
+
       fi
     fi
   else
@@ -165,7 +165,7 @@ for i in "${!REMOTES[@]}"; do
       else
         FAILED_REMOTES+=("${REMOTES[i]}")
         print_error "Sync with --resync also failed for ${REMOTES[i]}. Check the $SYNCP_LOG and $RCLONE_LOG for details."
-        exit 1
+
       fi
     fi
   fi

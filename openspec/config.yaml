@@ -1,34 +1,89 @@
 schema: spec-driven
-githubCopilot:
-  cloudAgent: true
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Projeto: colecao de scripts reutilizaveis para administracao de sistemas,
+  DevOps, backups, sincronizacao e automacao de infraestrutura.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Escopo atual:
+  - Scripts Bash (.sh) para Linux, NAS e tarefas agendadas por cron.
+  - Scripts PowerShell (.ps1) para automacao e administracao no Windows.
+  - Scripts Python (.py) para coleta, persistencia e relatorios de dados.
+  - Documentacao de instalacao, configuracao, operacao e troubleshooting junto
+    de cada familia de scripts.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+  Estrutura e distribuicao:
+  - Organizar novos scripts por plataforma e finalidade em src/<grupo>/.
+  - Manter uma familia de scripts relacionada no mesmo diretorio.
+  - Nao introduzir um framework, servico ou dependencia externa sem justificar
+    a necessidade, o custo operacional e uma alternativa mais simples.
+  - Scripts devem funcionar tanto manualmente quanto em agendadores quando isso
+    fizer parte do objetivo; caminhos e configuracoes devem ser parametrizaveis.
+
+  Qualidade e operacao:
+  - Preferir scripts idempotentes, com modo de simulacao quando houver efeitos
+    destrutivos ou alteracoes remotas.
+  - Validar dependencias, argumentos, permissoes, conectividade e espaco em
+    disco antes de executar operacoes irreversiveis.
+  - Nunca gravar tokens, senhas ou chaves no codigo, logs, exemplos ou commits.
+  - Usar codigos de saida consistentes, mensagens de erro acionaveis e logs
+    suficientes para diagnosticar uma execucao agendada.
+  - Preservar compatibilidade com as plataformas suportadas e declarar
+    versoes/minimos de ferramentas quando forem relevantes.
+
+  Convencoes de codigo:
+  - Bash: usar `#!/usr/bin/env bash`, `set -euo pipefail`, funcoes com nomes em
+    snake_case, `local` para variaveis locais e quoting de expansoes.
+  - PowerShell: usar `Set-StrictMode -Version Latest`, funcoes em PascalCase,
+    parametros nomeados e tratamento explicito de erros.
+  - Python: seguir PEP 8, usar type hints nas interfaces publicas, `pathlib`
+    para caminhos e `logging` em vez de prints para diagnostico.
+  - Comentarios e docstrings em en_US; documentacao explicativa em pt_BR.
+
+  Padrao de documentacao:
+  - Cada nova familia de scripts deve ter README.md com finalidade,
+    pre-requisitos, instalacao, configuracao, exemplos, agendamento,
+    permissoes, seguranca, logs e troubleshooting.
+  - Mudancas de comportamento devem registrar compatibilidade, migracao e
+    impacto em configuracoes, formatos de dados ou integracoes externas.
+
+rules:
+  proposal:
+    - Descrever objetivo, nao-objetivos, plataformas afetadas e impacto em
+      configuracoes, dados, permissoes e integracoes externas.
+    - Explicar decisoes e trade-offs em pt_BR, incluindo dependencias novas e
+      alternativas consideradas.
+  spec:
+    - Escrever requisitos verificaveis, com entradas, saidas, erros e codigos
+      de saida esperados.
+    - Documentar pre-requisitos, limites de compatibilidade, seguranca,
+      idempotencia e comportamento em falhas ou reconexao.
+    - Evitar requisitos vagos como "tratar erros"; indicar como o resultado
+      pode ser observado ou testado.
+  tasks:
+    - Quebrar o trabalho em passos pequenos e independentes, validaveis em
+      ambiente local antes de qualquer execucao em producao.
+    - Incluir testes de caminho feliz, argumentos invalidos, dependencia
+      ausente, permissoes insuficientes e falha de rede quando aplicavel.
+    - Consultar documentacao oficial das linguagens, ferramentas e servicos
+      usados antes de fixar opcoes de API ou CLI.
+
+operations:
+  apply:
+    guidance:
+      - Preservar a estrutura existente e manter mudancas focadas no escopo da
+        change; nao reorganizar scripts nao relacionados.
+      - Antes de executar operacoes destrutivas ou remotas, exigir confirmacao
+        explicita ou oferecer `--dry-run` quando tecnicamente possivel.
+      - Atualizar o README da familia afetada e criar ou atualizar
+        docs/<nome-da-change>.md em pt_BR com o que foi construido, decisoes,
+        validacao, problemas corrigidos e pendencias.
+      - Validar sintaxe e executar testes locais antes de marcar cada tarefa
+        como concluida; registrar testes que dependem de Windows, NAS, rede ou
+        credenciais reais.
+  archive:
+    guidance:
+      - Resumir o que foi entregue, arquivos afetados e como foi validado.
+      - Registrar mudancas de interface, configuracao, seguranca e pendencias
+        que permanecem fora do escopo.
+      - Conferir que docs/<nome-da-change>.md reflete o estado final antes de
+        arquivar a change.
