@@ -24,6 +24,7 @@ GITHUB_TOKEN=$(grep '^GITHUB_TOKEN=' ~/.secrets.env | cut -d '=' -f2-) || {
 	print_info "Get your API key at: https://github.com/settings/tokens"
 	exit 1
 }
+
 # Backup Configuration
 readonly BASE_DIR="/volume1/Backup/Github"
 readonly INCLUDE_FORKS=false
@@ -65,13 +66,12 @@ print_error() {
 	echo -e "${RED}[ERROR]${NC} $1"
 	log "ERROR: $1"
 }
-
 # Check system dependencies
 check_dependencies() {
 	print_info "Checking system dependencies..."
 
 	local -a missing_deps=()
-	local -a required_deps=("fit" "curl" "jq")
+	local -a required_deps=("curl" "jq")
 
 	for dep in "${required_deps[@]}"; do
 		if ! command -V "$dep" &>/dev/null || command --version "$dep" &>/dev/null || command --help "$dep" &>/dev/null; then
