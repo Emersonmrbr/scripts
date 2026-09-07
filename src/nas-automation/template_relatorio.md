@@ -1,27 +1,28 @@
 # 📡 Relatório Mensal de Desempenho de Conectividade  
-**Monitoramento Contínuo de Acesso à Internet**
+
+## Monitoramento Contínuo de Acesso à Internet
 
 ---
 
 ## 1. Identificação do Relatório
 
 | Campo | Informação |
-|------|------------|
+| ------ | ------------ |
 | **Empresa Responsável** | {EMPRESA} |
 | **CNPJ** | {CNPJ} |
 | **Responsável Técnico** | {RESPONSAVEL_TECNICO} |
-| **Contato Técnico** | {CONTATO} |
-| **Sistema de Monitoramento** | Speedtest Automatizado |
+| **Contato Técnico** | <{CONTATO}> |
+| **Sistema de Monitoramento** | {TOOL} |
 | **Periodicidade** | Mensal |
-| **Versão do Relatório** | 1.0 |
+| **Versão do Relatório** | 2.0 |
 
 ---
 
 ## 2. Período de Referência
 
 | Item | Valor |
-|-----|-------|
-| **Mês/Ano** | {MES_ANO} |
+| ----- | ------- |
+| **Mês/Ano** | {MES}/{ANO} |
 | **Início do Período** | {DATA_INICIO} |
 | **Fim do Período** | {DATA_FIM} |
 | **Total de Medições Realizadas** | {TOTAL_MEDICOES} |
@@ -54,7 +55,7 @@ Todos os dados coletados são armazenados em banco de dados estruturado e proces
 ## 5. Indicadores Consolidados – Média Mensal
 
 | Indicador | Valor Médio | Unidade |
-|----------|-------------|---------|
+| ---------- | ------------- | --------- |
 | **Velocidade de Download** | {MEDIA_DOWNLOAD} | Mbps |
 | **Velocidade de Upload** | {MEDIA_UPLOAD} | Mbps |
 | **Latência (Ping)** | {MEDIA_PING} | ms |
@@ -66,14 +67,13 @@ Todos os dados coletados são armazenados em banco de dados estruturado e proces
 ## 6. Análise Técnica Mensal
 
 {ANALISE_TECNICA_MENSAL}
-
 ---
 
 ## 7. Eventos Relevantes
 
 | Data | Descrição |
-|-----|-----------|
-| — | — |
+|------|-----------|
+| ---- | --------- |
 
 > Na ausência de eventos relevantes, este item permanece sem registros.
 
@@ -90,7 +90,7 @@ Todos os dados coletados são armazenados em banco de dados estruturado e proces
 ## 9. Responsável Técnico
 
 | Campo | Informação |
-|------|------------|
+| ------ | ------------ |
 | **Nome** | {RESPONSAVEL_TECNICO} |
 | **Cargo / Função** | {CARGO} |
 | **Assinatura** | ______________________________ |

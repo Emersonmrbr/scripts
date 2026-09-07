@@ -14,6 +14,7 @@ DOWNLOAD="" UPLOAD="" JITTER="" LATENCY="" DATETIME="" RESULT_URL="" SERVER="" R
 DB_HOST="" DB_PORT="" DB_USER="" DB_PASSWORD="" DB_NAME=""
 # Backup Configuration
 readonly LOG_FILE="/volume1/logs/speedtest.log"
+readonly TOOL="speedtest"
 
 #------------------------------------------------------------------------------
 # COLORS AND OUTPUT FUNCTIONS
@@ -183,18 +184,19 @@ ensure_table() {
 CREATE TABLE IF NOT EXISTS results (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   datetime    DATETIME       NOT NULL,
-    download    DECIMAL(10,2)  NOT NULL COMMENT 'Mbps',
-    upload      DECIMAL(10,2)  NOT NULL COMMENT 'Mbps',
-    server      VARCHAR(255),
-    location    VARCHAR(300),
-    externalip  VARCHAR(50),
+  download    DECIMAL(10,2)  NOT NULL COMMENT 'Mbps',
+  upload      DECIMAL(10,2)  NOT NULL COMMENT 'Mbps',
+  server      VARCHAR(255),
+  location    VARCHAR(300),
+  externalip  VARCHAR(50),
   createdat  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    jitter      DECIMAL(10,2)  COMMENT 'ms',
-    packetloss  DECIMAL(10,2),
-    resultid    VARCHAR(50),
+  jitter      DECIMAL(10,2)  COMMENT 'ms',
+  packetloss  DECIMAL(10,2),
+  resultid    VARCHAR(50),
   resulturl   VARCHAR(255),
-    latency     DECIMAL(10,2)  COMMENT 'ms',
-    internalip  VARCHAR(50)
+  latency     DECIMAL(10,2)  COMMENT 'ms',
+  internalip  VARCHAR(50),
+  tool        VARCHAR(50) DEFAULT 'speedtest'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 SQL
     print_success "Database table ensured successfully"
@@ -236,8 +238,8 @@ save_to_database() {
   local internal_ip_sql="${INTERNAL_IP//\'/''}"
 
   local -r query=$(printf \
-    "INSERT INTO results (datetime, download, upload, server, location, externalip, jitter, packetloss, resultid, resulturl, latency, internalip) VALUES ('%s', %.2f, %.2f, '%s', '%s', '%s', %.2f, %.2f, '%s', '%s', %.2f, '%s');" \
-    "$datetime_sql" "$DOWNLOAD" "$UPLOAD" "$server_sql" "$location_sql" "$external_ip_sql" "$JITTER" "$PACKETLOSS" "$result_id_sql" "$result_url_sql" "$LATENCY" "$internal_ip_sql")
+    "INSERT INTO results (datetime, download, upload, server, location, externalip, jitter, packetloss, resultid, resulturl, latency, internalip, tool) VALUES ('%s', %.2f, %.2f, '%s', '%s', '%s', %.2f, %.2f, '%s', '%s', %.2f, '%s', '%s');" \
+    "$datetime_sql" "$DOWNLOAD" "$UPLOAD" "$server_sql" "$location_sql" "$external_ip_sql" "$JITTER" "$PACKETLOSS" "$result_id_sql" "$result_url_sql" "$LATENCY" "$internal_ip_sql" "$TOOL")
 
   if ! mysql_config -e "$query"; then
     print_error "Failed to save results to database"

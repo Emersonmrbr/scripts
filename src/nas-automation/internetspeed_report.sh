@@ -18,11 +18,12 @@ MONTHFILE=$(date -d "$LASTDAYLASTMONTH" +%Y_%m)
 EMPRESA="Núcleo MAP - Máquinas, Automação e Programação"
 CNPJ="30.945.466/0001-20"
 RESPONSAVEL_TECNICO="Emerson Martins Brito"
-CARGO="Especialista em automação"
+CARGO="Especialista em software"
 CONTATO="emerson@nucleomap.com.br"
 
-TEMPLATE_PATH="template_relatorio.md"
+TEMPLATE_PATH="./template_relatorio.md"
 OUTPUT_DIR="/volume1/Reports"
+ACTUAL_DATE=$(date +%d/%m/%Y)
 
 CONTRACTED_SPEED_MBPS=1000
 MINIMUM_ACCEPTABLE_MBPS_DOWNLOAD=$(echo "$CONTRACTED_SPEED_MBPS * 0.4" | bc)  # 40% of the contractored speed
@@ -33,6 +34,7 @@ MAXIMUM_ACCEPTABLE_PING_MS=40
 MONTHLY_TECHNICAL_ANALYSIS=""
 
 ANALYSIS=""
+TOOL=""
 
 # Backup Configuration
 readonly LOG_FILE="/volume1/logs/speedtest.log"
@@ -158,13 +160,15 @@ SELECT
   ROUND(AVG(jitter), 2) AS AVERAGEJITTER,
   ROUND(AVG(packetloss), 2) AS AVERAGEPACKETLOSS,
   DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01') AS STARTDATE,
-  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS ENDDATE,
+  LAST_DAY(CURRENT_DATE - INTERVAL 1 MONTH) AS ENDDATE,
   DATE_FORMAT(CURRENT_DATE, '%Y') AS YEAR,
   DATE_FORMAT(CURRENT_DATE, '%m') AS MONTH,
+  tool AS TOOL,
   COUNT(*) AS TOTALMEASUREMENTS
 FROM results
 WHERE datetime >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
-AND datetime < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
+AND datetime < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')
+AND tool = '$1';
 SQL
   dados=$(mysql_config -N -e "$query") || {
     print_error "Failed to execute query: $query"
@@ -174,7 +178,7 @@ SQL
     print_warning "No data found for the specified date range."
     exit 0
   fi
-  IFS=$'\t' read -r MINDOWNLOAD MINUPLOAD MAXLATENCY MAXJITTER AVERAGEDOWNLOAD AVERAGEUPLOAD AVERAGELATENCY AVERAGEJITTER AVERAGEPACKETLOSS STARTDATE ENDDATE YEAR MONTH TOTALMEASUREMENTS <<<"$dados"
+  IFS=$'\t' read -r MINDOWNLOAD MINUPLOAD MAXLATENCY MAXJITTER AVERAGEDOWNLOAD AVERAGEUPLOAD AVERAGELATENCY AVERAGEJITTER AVERAGEPACKETLOSS STARTDATE ENDDATE YEAR MONTH TOTALMEASUREMENTS TOOL <<<"$dados"
   print_success "Data retrieved successfully"
 
   echo "Minimum Download: $MINDOWNLOAD Mbps"
@@ -188,60 +192,110 @@ SQL
   echo "Average Packet Loss: $AVERAGEPACKETLOSS %"
   echo "Date Range: $STARTDATE to $ENDDATE"
   echo "Total Measurements: $TOTALMEASUREMENTS"
+  echo "Tool: $TOOL"
   echo "Year: $YEAR, Month: $MONTH"
 }
 
 generate_technical_analysis() {
+    local alert_count=0
 
     ANALYSIS+=$(cat <<'EOF'
-Durante o período avaliado, os indicadores de desempenho
-        apresentaram comportamento compatível com o perfil do serviço monitorado.
+Durante o período avaliado, os indicadores de desempenho apresentaram comportamento compatível com o perfil do serviço monitorado.
 EOF
     )
 
-    if [[ -n "$MINDOWNLOAD" && "$MINDOWNLOAD" -lt "$MINIMUM_ACCEPTABLE_MBPS_DOWNLOAD" ]]; then
+    if [[ -n "$MINDOWNLOAD" ]] && awk -v a="$MINDOWNLOAD" -v b="$MINIMUM_ACCEPTABLE_MBPS_DOWNLOAD" 'BEGIN{exit !(a<b)}'; then
         ANALYSIS+=$(cat <<EOF
-**Alerta:** Velocidade mínima de download abaixo do esperado (${MINDOWNLOAD} Mbps).
+\n**Alerta:** Velocidade mínima de download abaixo do esperado (${MINDOWNLOAD} Mbps).\n
 EOF
         )
+        alert_count=$((alert_count + 1))
     fi
 
-    if [[ -n "$MINUPLOAD" && "$MINUPLOAD" -lt "$MINIMUM_ACCEPTABLE_MBPS_UPLOAD" ]]; then
+    if [[ -n "$MINUPLOAD" ]] && awk -v a="$MINUPLOAD" -v b="$MINIMUM_ACCEPTABLE_MBPS_UPLOAD" 'BEGIN{exit !(a<b)}'; then
         ANALYSIS+=$(cat <<EOF
-**Alerta:** Velocidade mínima de upload abaixo do esperado (${MINUPLOAD} Mbps).
+\n**Alerta:** Velocidade mínima de upload abaixo do esperado (${MINUPLOAD} Mbps).\n
 EOF
         )
+        alert_count=$((alert_count + 1))
     fi
 
-    if [[ -n "$AVERAGEDOWNLOAD" && "$AVERAGEDOWNLOAD" -lt "$AVERAGE_ACCEPTABLE_MBPS_DOWNLOAD" ]]; then
+    if [[ -n "$AVERAGEDOWNLOAD" ]] && awk -v a="$AVERAGEDOWNLOAD" -v b="$AVERAGE_ACCEPTABLE_MBPS_DOWNLOAD" 'BEGIN{exit !(a<b)}'; then
         ANALYSIS+=$(cat <<EOF
-**Alerta:** Média mensal de download abaixo do esperado (${AVERAGEDOWNLOAD} Mbps).
+\n**Alerta:** Média mensal de download abaixo do esperado (${AVERAGEDOWNLOAD} Mbps).\n
 EOF
         )
+        alert_count=$((alert_count + 1))
     fi
 
-    if [[ -n "$AVERAGEUPLOAD" && "$AVERAGEUPLOAD" -lt "$AVERAGE_ACCEPTABLE_MBPS_UPLOAD" ]]; then
+    if [[ -n "$AVERAGEUPLOAD" ]] && awk -v a="$AVERAGEUPLOAD" -v b="$AVERAGE_ACCEPTABLE_MBPS_UPLOAD" 'BEGIN{exit !(a<b)}'; then
         ANALYSIS+=$(cat <<EOF
-**Alerta:** Média mensal de upload abaixo do esperado (${AVERAGEUPLOAD} Mbps).
+\n**Alerta:** Média mensal de upload abaixo do esperado (${AVERAGEUPLOAD} Mbps).
 EOF
         )
+        alert_count=$((alert_count + 1))
     fi
 
-    if [[ -n "$MAXLATENCY" && "$MAXLATENCY" -gt "$MAXIMUM_ACCEPTABLE_PING_MS" ]]; then
+    if [[ -n "$MAXLATENCY" ]] && awk -v a="$MAXLATENCY" -v b="$MAXIMUM_ACCEPTABLE_PING_MS" 'BEGIN{exit !(a>b)}'; then
         ANALYSIS+=$(cat <<EOF
-**Alerta:** Latência máxima registrada acima do aceitável (${MAXLATENCY} ms).
+\n**Alerta:** Latência máxima registrada acima do aceitável (${MAXLATENCY} ms).
 EOF
         )
+        alert_count=$((alert_count + 1))
     fi
 
-    if [[ ${#ANALYSIS[@]} -eq 1 ]]; then
+    if [[ $alert_count -eq 0 ]]; then
         ANALYSIS+=$(cat <<EOF
-Não foram observadas degradações persistentes que comprometessem a qualidade da conexão durante o mês de referência.
+\nNão foram observadas degradações persistentes que comprometessem a qualidade da conexão durante o mês de referência.
 EOF
         )
     fi
 
     return 0
+}
+
+report_markdown(){
+  if ! cp "$TEMPLATE_PATH" "$OUTPUT_DIR/$1_$MONTHFILE.md"; then
+    echo "Erro ao copiar o template para o diretório de saída."
+    return 1
+  fi
+  local analysis_sed
+  analysis_sed=$(printf '%s' "$ANALYSIS" | sed ':a;N;$!ba;s/\n/\\\n/g')
+  sed -i "s/{ANALISE_TECNICA_MENSAL}/$analysis_sed/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{EMPRESA}/$EMPRESA/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s#{CNPJ}#$CNPJ#g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{RESPONSAVEL_TECNICO}/$RESPONSAVEL_TECNICO/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{CONTATO}/$CONTATO/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{CARGO}/$CARGO/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{TOOL}/$TOOL/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s#{DATA_EMISSAO}#$ACTUAL_DATE#g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{MIN_DOWNLOAD}/$MINDOWNLOAD/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{MIN_UPLOAD}/$MINUPLOAD/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{MAX_LATENCY}/$MAXLATENCY/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{MAX_JITTER}/$MAXJITTER/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{MEDIA_DOWNLOAD}/$AVERAGEDOWNLOAD/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{MEDIA_UPLOAD}/$AVERAGEUPLOAD/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{MEDIA_PING}/$AVERAGELATENCY/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{MEDIA_JITTER}/$AVERAGEJITTER/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{MEDIA_PERDA}/$AVERAGEPACKETLOSS/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s#{DATA_INICIO}#$STARTDATE#g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s#{DATA_FIM}#$ENDDATE#g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{TOTAL_MEDICOES}/$TOTALMEASUREMENTS/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{MES}/$MONTH/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+  sed -i "s/{ANO}/$YEAR/g" "$OUTPUT_DIR/$1_$MONTHFILE.md"
+}
+
+hash_generator(){
+  local file="$1"
+  if [[ -z "$file" ]]; then
+    echo "Usage: hash_generator <file>"
+    return 1
+  fi
+  if [[ ! -f "$file" ]]; then
+    echo "File not found: $file"
+    return 1
+  fi
+  sha256sum "$file" > "$file.sha256"
 }
 
 #------------------------------------------------------------------------------
@@ -251,7 +305,10 @@ EOF
 main() {
   load_configuration || exit 1
   check_dependencies || exit 1
-  read_from_database || exit 1
+  read_from_database "speedtest" || exit 1
+  generate_technical_analysis || exit 1
+  report_markdown "SPEEDTEST_REPORT" || exit 1
+  hash_generator "$OUTPUT_DIR/SPEEDTEST_REPORT_$MONTHFILE.md" || exit 1
 }
 
 main "$@"
