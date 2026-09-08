@@ -114,13 +114,11 @@ load_configuration() {
 
 }
 
-mysql_config() {
-  mysql \
-    --host="$DB_HOST" \
-    --port="$DB_PORT" \
-    --user="$DB_USER" \
-    --password="$DB_PASSWORD" \
-    "$DB_NAME" "$@"
+psql_config() {
+  local -a docker_cmd=(docker)
+  [[ "$(id -u)" -ne 0 ]] && docker_cmd=(sudo docker)
+  "${docker_cmd[@]}" exec -i -e PGPASSWORD="$DB_PASSWORD" postgres-18 \
+    psql --username="$DB_USER" --dbname="$DB_NAME" "$@"
 }
 
 # Check system dependencies
@@ -128,7 +126,7 @@ check_dependencies() {
   print_status "Checking system dependencies..."
 
   local -a missing_deps=()
-  local -ar required_deps=("curl" "jq" "tar" "find" "mysql")
+  local -ar required_deps=("curl" "jq" "tar" "find" "docker")
 
   for dep in "${required_deps[@]}"; do
     if ! command -v "$dep" &>/dev/null; then
@@ -148,7 +146,7 @@ check_dependencies() {
 
 read_from_database() {
   print_status "Reading data from database..."
-  read -r -d '' query <<'SQL'
+  read -r -d '' query <<SQL
 SELECT
   MIN(download) AS MINDOWNLOAD,
   MIN(upload) AS MINUPLOAD,
@@ -159,18 +157,19 @@ SELECT
   ROUND(AVG(latency), 2) AS AVERAGELATENCY,
   ROUND(AVG(jitter), 2) AS AVERAGEJITTER,
   ROUND(AVG(packetloss), 2) AS AVERAGEPACKETLOSS,
-  DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01') AS STARTDATE,
-  LAST_DAY(CURRENT_DATE - INTERVAL 1 MONTH) AS ENDDATE,
-  DATE_FORMAT(CURRENT_DATE, '%Y') AS YEAR,
-  DATE_FORMAT(CURRENT_DATE, '%m') AS MONTH,
-  tool AS TOOL,
-  COUNT(*) AS TOTALMEASUREMENTS
+  TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM-01') AS STARTDATE,
+  (DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month') + INTERVAL '1 month' - INTERVAL '1 day')::date AS ENDDATE,
+  TO_CHAR(CURRENT_DATE, 'YYYY') AS YEAR,
+  TO_CHAR(CURRENT_DATE, 'MM') AS MONTH,
+  COUNT(*) AS TOTALMEASUREMENTS,
+  tool AS TOOL
 FROM results
-WHERE datetime >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
-AND datetime < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')
-AND tool = '$1';
+WHERE datetime >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month')
+AND datetime < DATE_TRUNC('month', CURRENT_DATE)
+AND tool = '$1'
+GROUP BY tool;
 SQL
-  dados=$(mysql_config -N -e "$query") || {
+  dados=$(psql_config -tA -F $'\t' -c "$query") || {
     print_error "Failed to execute query: $query"
     exit 1
   }

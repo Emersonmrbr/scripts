@@ -91,13 +91,11 @@ load_configuration() {
 
 }
 
-mysql_config() {
-  mysql \
-    --host="$DB_HOST" \
-    --port="$DB_PORT" \
-    --user="$DB_USER" \
-    --password="$DB_PASSWORD" \
-    "$DB_NAME" "$@"
+psql_config() {
+  local -a docker_cmd=(docker)
+  [[ "$(id -u)" -ne 0 ]] && docker_cmd=(sudo docker)
+  "${docker_cmd[@]}" exec -i -e PGPASSWORD="$DB_PASSWORD" postgres-18 \
+    psql --username="$DB_USER" --dbname="$DB_NAME" "$@"
 }
 
 # Check system dependencies
@@ -105,7 +103,7 @@ check_dependencies() {
   print_status "Checking system dependencies..."
 
   local -a missing_deps=()
-  local -ar required_deps=("curl" "jq" "tar" "find" "mysql")
+  local -ar required_deps=("curl" "jq" "tar" "find" "docker")
 
   for dep in "${required_deps[@]}"; do
     if ! command -v "$dep" &>/dev/null; then
@@ -180,31 +178,31 @@ test_speed() {
 ensure_table() {
 
   print_status "Ensuring database table exists..."
-  if mysql_config <<'SQL'; then
+  if psql_config <<'SQL'; then
 CREATE TABLE IF NOT EXISTS results (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  datetime    DATETIME       NOT NULL,
-  download    DECIMAL(10,2)  NOT NULL COMMENT 'Mbps',
-  upload      DECIMAL(10,2)  NOT NULL COMMENT 'Mbps',
+  id          BIGSERIAL PRIMARY KEY,
+  datetime    TIMESTAMPTZ    NOT NULL,
+  download    NUMERIC(10,2)  NOT NULL,
+  upload      NUMERIC(10,2)  NOT NULL,
   server      VARCHAR(255),
   location    VARCHAR(300),
   externalip  VARCHAR(50),
-  createdat  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  jitter      DECIMAL(10,2)  COMMENT 'ms',
-  packetloss  DECIMAL(10,2),
+  createdat   TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  jitter      NUMERIC(10,2),
+  packetloss  NUMERIC(10,2),
   resultid    VARCHAR(50),
   resulturl   VARCHAR(255),
-  latency     DECIMAL(10,2)  COMMENT 'ms',
+  latency     NUMERIC(10,2),
   internalip  VARCHAR(50),
   tool        VARCHAR(50) DEFAULT 'speedtest'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+);
 SQL
     print_success "Database table ensured successfully"
     return 0
   fi
 
   print_warning "Could not create table (likely missing CREATE privilege). Checking if table already exists..."
-  if mysql_config -N -s -e "SELECT 1 FROM information_schema.tables WHERE table_schema = '$DB_NAME' AND table_name = 'results' LIMIT 1;" | grep -q '^1$'; then
+  if psql_config -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'results' LIMIT 1;" | grep -q '^1$'; then
     print_warning "Using existing results table without CREATE privilege."
     return 0
   fi
@@ -224,7 +222,7 @@ save_to_database() {
     return 1
   }
 
-  before_count=$(mysql_config -N -s -e "SELECT COUNT(*) FROM results WHERE resultid = '$RESULT_ID';") || {
+  before_count=$(psql_config -tAc "SELECT COUNT(*) FROM results WHERE resultid = '$RESULT_ID';") || {
     print_error "Failed to read existing record count before insert"
     return 1
   }
@@ -241,12 +239,12 @@ save_to_database() {
     "INSERT INTO results (datetime, download, upload, server, location, externalip, jitter, packetloss, resultid, resulturl, latency, internalip, tool) VALUES ('%s', %.2f, %.2f, '%s', '%s', '%s', %.2f, %.2f, '%s', '%s', %.2f, '%s', '%s');" \
     "$datetime_sql" "$DOWNLOAD" "$UPLOAD" "$server_sql" "$location_sql" "$external_ip_sql" "$JITTER" "$PACKETLOSS" "$result_id_sql" "$result_url_sql" "$LATENCY" "$internal_ip_sql" "$TOOL")
 
-  if ! mysql_config -e "$query"; then
+  if ! psql_config -c "$query"; then
     print_error "Failed to save results to database"
     return 1
   fi
 
-  after_count=$(mysql_config -N -s -e "SELECT COUNT(*) FROM results WHERE resultid = '$RESULT_ID';") || {
+  after_count=$(psql_config -tAc "SELECT COUNT(*) FROM results WHERE resultid = '$RESULT_ID';") || {
     print_error "Failed to read record count after insert"
     return 1
   }
