@@ -23,8 +23,8 @@
   "panels": [
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -80,14 +80,15 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
+          "dataset": "internetspeed",
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT download as 'Current Download' FROM results ORDER BY createdat DESC LIMIT 1",
+          "rawSql": "SELECT download as \"Current Download\" FROM results ORDER BY createdat DESC LIMIT 1",
           "refId": "A",
           "sql": {
             "columns": [
@@ -113,8 +114,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -170,14 +171,15 @@
       "pluginVersion": "12.3.1",
       "targets": [
         {
+          "dataset": "internetspeed",
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT upload as 'Current Upload' FROM results ORDER BY createdat DESC LIMIT 1",
+          "rawSql": "SELECT upload as \"Current Upload\" FROM results ORDER BY createdat DESC LIMIT 1",
           "refId": "A",
           "sql": {
             "columns": [
@@ -203,8 +205,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -261,13 +263,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT latency as 'Current Latency' FROM results ORDER BY createdat DESC LIMIT 1",
+          "rawSql": "SELECT latency as \"Current Latency\" FROM results ORDER BY createdat DESC LIMIT 1",
           "refId": "A",
           "sql": {
             "columns": [
@@ -293,8 +295,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -343,13 +345,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*) as 'Total Tests' FROM results",
+          "rawSql": "SELECT COUNT(*) as \"Total Tests\" FROM results",
           "refId": "A",
           "sql": {
             "columns": [
@@ -375,8 +377,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -476,13 +478,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  UNIX_TIMESTAMP(createdat) as time_sec,\n  download as value,\n  'Download' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nORDER BY createdat",
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM createdat) as time,\n  download as value,\n  'Download' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nORDER BY createdat",
           "refId": "A",
           "sql": {
             "columns": [
@@ -508,8 +510,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -609,13 +611,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  UNIX_TIMESTAMP(createdat) as time_sec,\n  upload as value,\n  'Upload' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nORDER BY createdat",
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM createdat) as time,\n  upload as value,\n  'Upload' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nORDER BY createdat",
           "refId": "A",
           "sql": {
             "columns": [
@@ -641,8 +643,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -750,13 +752,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  UNIX_TIMESTAMP(createdat) as time_sec,\n  latency as value,\n  'Ping' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nORDER BY createdat",
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM createdat) as time,\n  latency as value,\n  'Ping' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nORDER BY createdat",
           "refId": "A",
           "sql": {
             "columns": [
@@ -782,8 +784,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -886,13 +888,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n  HOUR(createdat) as 'Time',\n  ROUND(AVG(download), 2) as 'Medium Download',\n  ROUND(AVG(upload), 2) as 'Medium Upload',\n  ROUND(AVG(latency), 2) as 'Average Ping',\n  externalip as 'External IP',\n  COUNT(*) as 'Tests'\nFROM results\nWHERE $__timeFilter(createdat)\nGROUP BY HOUR(createdat)\nORDER BY HOUR(createdat)",
+          "rawSql": "SELECT \n  EXTRACT(HOUR FROM createdat) as \"Time\",\n  ROUND(AVG(download), 2) as \"Medium Download\",\n  ROUND(AVG(upload), 2) as \"Medium Upload\",\n  ROUND(AVG(latency), 2) as \"Average Ping\",\n  MAX(externalip) as \"External IP\",\n  COUNT(*) as \"Tests\"\nFROM results\nWHERE $__timeFilter(createdat)\nGROUP BY EXTRACT(HOUR FROM createdat)\nORDER BY EXTRACT(HOUR FROM createdat)",
           "refId": "A",
           "sql": {
             "columns": [
@@ -918,8 +920,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -1040,13 +1042,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  UNIX_TIMESTAMP(DATE_FORMAT(createdat, '%Y-%m-%d %H:00:00')) as time_sec,\n  AVG(download) as value,\n  'Medium Download' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nGROUP BY HOUR(createdat), DATE(createdat)\nORDER BY time_sec",
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM DATE_TRUNC('hour', createdat)) as time,\n  AVG(download) as value,\n  'Medium Download' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nGROUP BY DATE_TRUNC('hour', createdat)\nORDER BY time",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1068,14 +1070,14 @@
         },
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "time_series",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT\n  UNIX_TIMESTAMP(DATE_FORMAT(createdat, '%Y-%m-%d %H:00:00')) as time_sec,\n  AVG(upload) as value,\n  'Medium Upload' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nGROUP BY HOUR(createdat), DATE(createdat)\nORDER BY time_sec",
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM DATE_TRUNC('hour', createdat)) as time,\n  AVG(upload) as value,\n  'Medium Upload' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nGROUP BY DATE_TRUNC('hour', createdat)\nORDER BY time",
           "refId": "B",
           "sql": {
             "columns": [
@@ -1101,8 +1103,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -1164,13 +1166,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n  AVG(download) as 'Average Day'\nFROM results\nWHERE HOUR(createdat) >= 6 AND HOUR(createdat) < 18\n  AND $__timeFilter(createdat)",
+          "rawSql": "SELECT \n  AVG(download) as \"Average Day\"\nFROM results\nWHERE EXTRACT(HOUR FROM createdat) >= 6 AND EXTRACT(HOUR FROM createdat) < 18\n  AND $__timeFilter(createdat)",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1196,8 +1198,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -1258,13 +1260,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n  AVG(download) as 'Average Night'\nFROM results\nWHERE (HOUR(createdat) < 6 OR HOUR(createdat) >= 18)\n  AND $__timeFilter(createdat)",
+          "rawSql": "SELECT \n  AVG(download) as \"Average Night\"\nFROM results\nWHERE (EXTRACT(HOUR FROM createdat) < 6 OR EXTRACT(HOUR FROM createdat) >= 18)\n  AND $__timeFilter(createdat)",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1290,8 +1292,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -1352,13 +1354,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n  AVG(download) AS 'Current Monthly Average Download'\nFROM results\nWHERE \n  YEAR(createdat) = YEAR(CURDATE())\n  AND MONTH(createdat) = MONTH(CURDATE())\n  AND $__timeFilter(createdat);\n",
+          "rawSql": "SELECT \n  AVG(download) AS \"Current Monthly Average Download\"\nFROM results\nWHERE \n  EXTRACT(YEAR FROM createdat) = EXTRACT(YEAR FROM CURRENT_DATE)\n  AND EXTRACT(MONTH FROM createdat) = EXTRACT(MONTH FROM CURRENT_DATE)\n  AND $__timeFilter(createdat);\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1384,8 +1386,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -1446,13 +1448,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n  AVG(upload) AS 'Current Monthly Average Upload'\nFROM results\nWHERE \n  YEAR(createdat) = YEAR(CURDATE())\n  AND MONTH(createdat) = MONTH(CURDATE())\n  AND $__timeFilter(createdat);\n",
+          "rawSql": "SELECT \n  AVG(upload) AS \"Current Monthly Average Upload\"\nFROM results\nWHERE \n  EXTRACT(YEAR FROM createdat) = EXTRACT(YEAR FROM CURRENT_DATE)\n  AND EXTRACT(MONTH FROM createdat) = EXTRACT(MONTH FROM CURRENT_DATE)\n  AND $__timeFilter(createdat);\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1478,8 +1480,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -1601,13 +1603,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  UNIX_TIMESTAMP(createdat) as time_sec,\n  download as value,\n  'Day (6h-18h)' as metric\nFROM results\nWHERE $__timeFilter(createdat)\n  AND HOUR(createdat) >= 6 \n  AND HOUR(createdat) < 18\nORDER BY createdat",
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM createdat) as time,\n  download as value,\n  'Day (6h-18h)' as metric\nFROM results\nWHERE $__timeFilter(createdat)\n  AND EXTRACT(HOUR FROM createdat) >= 6 \n  AND EXTRACT(HOUR FROM createdat) < 18\nORDER BY createdat",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1629,14 +1631,14 @@
         },
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "time_series",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT\n  UNIX_TIMESTAMP(createdat) as time_sec,\n  download as value,\n  'Night (18h-6h)' as metric\nFROM results\nWHERE $__timeFilter(createdat)\n  AND (HOUR(createdat) < 6 OR HOUR(createdat) >= 18)\nORDER BY createdat",
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM createdat) as time,\n  download as value,\n  'Night (18h-6h)' as metric\nFROM results\nWHERE $__timeFilter(createdat)\n  AND (EXTRACT(HOUR FROM createdat) < 6 OR EXTRACT(HOUR FROM createdat) >= 18)\nORDER BY createdat",
           "refId": "B",
           "sql": {
             "columns": [
@@ -1662,8 +1664,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -1767,13 +1769,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT\n  UNIX_TIMESTAMP(createdat) as time_sec,\n  latency as value,\n  'Ping Variation' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nORDER BY createdat",
+          "rawSql": "SELECT\n  EXTRACT(EPOCH FROM createdat) as time,\n  latency as value,\n  'Ping Variation' as metric\nFROM results\nWHERE $__timeFilter(createdat)\nORDER BY createdat",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1799,8 +1801,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -1858,10 +1860,14 @@
       "targets": [
         {
           "dataset": "speedtest",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
+          },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\r\n  DATE_FORMAT(createdat, '%Y-%m') AS Month,\r\n  COUNT(*) AS 'Total Tests',\r\n  SUM(CASE WHEN download < 800 THEN 1 ELSE 0 END) AS 'Download Failures',\r\n  SUM(CASE WHEN upload < 400 THEN 1 ELSE 0 END) AS 'Upload Failures',\r\n  SUM(CASE WHEN latency > 40 THEN 1 ELSE 0 END) AS 'Ping Failures',\r\n  ROUND(100 * SUM(CASE WHEN download < 800 OR upload < 400 OR latency > 40 THEN 1 ELSE 0 END) / COUNT(*), 2) AS 'Failure Percentage'\r\nFROM results\r\nWHERE \r\n  YEAR(createdat) = YEAR(CURDATE())\r\n  AND $__timeFilter(createdat)\r\nGROUP BY Month\r\nORDER BY Month;\r\n",
+          "rawSql": "SELECT\n  TO_CHAR(createdat, 'YYYY-MM') AS \"Month\",\n  COUNT(*) AS \"Total Tests\",\n  SUM(CASE WHEN download < 800 THEN 1 ELSE 0 END) AS \"Download Failures\",\n  SUM(CASE WHEN upload < 400 THEN 1 ELSE 0 END) AS \"Upload Failures\",\n  SUM(CASE WHEN latency > 40 THEN 1 ELSE 0 END) AS \"Ping Failures\",\n  ROUND(100.0 * SUM(CASE WHEN download < 800 OR upload < 400 OR latency > 40 THEN 1 ELSE 0 END) / COUNT(*), 2) AS \"Failure Percentage\"\nFROM results\nWHERE \n  EXTRACT(YEAR FROM createdat) = EXTRACT(YEAR FROM CURRENT_DATE)\n  AND $__timeFilter(createdat)\nGROUP BY \"Month\"\nORDER BY \"Month\";\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1887,8 +1893,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -1971,13 +1977,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n  createdat as 'Date/Time',\n  ROUND(download, 2) as 'Download',\n  ROUND(upload, 2) as 'Upload',\n  ROUND(latency, 2) as 'Latency',\n  CASE \n    WHEN download < 400 THEN '⚠️ Download Low'\n    WHEN upload < 200 THEN '⚠️ Low Upload'\n    WHEN latency > 40 THEN '⚠️ High Latency'\n    ELSE '✅ Normal'\n  END as 'Alert'\nFROM results\nWHERE $__timeFilter(createdat)\n  AND (download < 400 OR upload < 200 OR latency > 30)\nORDER BY createdat DESC\nLIMIT 50",
+          "rawSql": "SELECT \n  createdat as \"Date/Time\",\n  ROUND(download, 2) as \"Download\",\n  ROUND(upload, 2) as \"Upload\",\n  ROUND(latency, 2) as \"Latency\",\n  CASE \n    WHEN download < 400 THEN '⚠️ Download Low'\n    WHEN upload < 200 THEN '⚠️ Low Upload'\n    WHEN latency > 40 THEN '⚠️ High Latency'\n    ELSE '✅ Normal'\n  END as \"Alert\"\nFROM results\nWHERE $__timeFilter(createdat)\n  AND (download < 400 OR upload < 200 OR latency > 30)\nORDER BY createdat DESC\nLIMIT 50",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2003,8 +2009,8 @@
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "bfab1khhdvif4d"
+        "type": "grafana-postgresql-datasource",
+        "uid": "bfxn3ycfkacxse"
       },
       "fieldConfig": {
         "defaults": {
@@ -2064,6 +2070,18 @@
                 "value": "ms"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Test"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "times"
+              }
+            ]
           }
         ]
       },
@@ -2083,13 +2101,13 @@
       "targets": [
         {
           "datasource": {
-            "type": "mysql",
-            "uid": "speedtest"
+            "type": "grafana-postgresql-datasource",
+            "uid": "bfxn3ycfkacxse"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT \n    DATE_FORMAT(createdat, '%Y %M') AS Month,\n    AVG(download) AS `Average Download`,\n    AVG(upload) AS `Average Upload`,\n    AVG(latency) AS `Average Latency`,\n    CASE \n        WHEN AVG(download) < 800 THEN '⚠️ Download Low'\n        WHEN AVG(upload) < 200 THEN '⚠️ Upload Low'\n        WHEN AVG(latency) > 40 THEN '⚠️ High Latency'\n        ELSE '✅ Normal'\n    END AS Alert\nFROM results\nWHERE YEAR(createdat) = YEAR(CURRENT_DATE())\nGROUP BY YEAR(createdat), MONTH(createdat), DATE_FORMAT(createdat, '%Y %M')\nORDER BY YEAR(createdat), MONTH(createdat);",
+          "rawSql": "SELECT \n    TO_CHAR(createdat, 'YYYY FMMonth') AS \"Month\",\n    AVG(download) AS \"Average Download\",\n    AVG(upload) AS \"Average Upload\",\n    AVG(latency) AS \"Average Latency\",\n    CASE \n        WHEN AVG(download) < 800 THEN '⚠️ Download Low'\n        WHEN AVG(upload) < 200 THEN '⚠️ Upload Low'\n        WHEN AVG(latency) > 40 THEN '⚠️ High Latency'\n        ELSE '✅ Normal'\n    END AS \"Alert\",\n    count(*) AS \"Tests\"\nFROM results\nWHERE EXTRACT(YEAR FROM createdat) = EXTRACT(YEAR FROM CURRENT_DATE)\nGROUP BY EXTRACT(YEAR FROM createdat), EXTRACT(MONTH FROM createdat), TO_CHAR(createdat, 'YYYY FMMonth')\nORDER BY EXTRACT(YEAR FROM createdat), EXTRACT(MONTH FROM createdat);",
           "refId": "A",
           "sql": {
             "columns": [
@@ -2133,5 +2151,5 @@
   "timezone": "browser",
   "title": "Monitoramento Completo de Internet - SpeedTest Pro",
   "uid": "speedtest-complete",
-  "version": 60
+  "version": 67
 }
