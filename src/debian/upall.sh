@@ -41,7 +41,7 @@ case "$1" in
   exit 0
   ;;
 --all | -a)
-if sudo apt-get update --yes && sudo apt-get upgrade --yes && sudo apt-get dist-upgrade --yes && sudo apt-get autoremove --yes && sudo apt-get autoclean --yes; then
+if sudo apt-get update --yes && sudo apt-get upgrade --yes && sudo apt-get dist-upgrade --yes && sudo apt-get autoremove --yes && sudo apt-get autoclean --yes || sudo apkg --update; then
   echo "System updated and upgraded successfully."
   exit 0
 else
@@ -50,7 +50,7 @@ else
 fi
   ;;
 --update | -u)
-  if sudo apt-get update --yes; then
+  if sudo apt-get update --yes || sudo apkg --update; then
     echo "Package lists updated successfully."
     exit 0
   else
