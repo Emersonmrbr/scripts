@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Cron wrapper script for execution
-# File: github-cron-wrapper.sh
+# File: nextcloud-cron-wrapper.sh
 
 # Configuration - EDIT AS NEEDED
-SCRIPT_PATH="/volume1/Scripts/src/nas-automation/github-backup.sh"
-LOG_FILE="/volume1/logs/github-cron.log"
-LOCK_FILE="/tmp/github-clone.lock"
+SCRIPT_PATH="/volume1/Scripts/src/nas-automation/scan-nextcloud.sh"
+LOG_FILE="/volume1/logs/nextcloud-scan-cron.log"
+LOCK_FILE="/tmp/nextcloud-scan-cron.lock"
 MAX_LOG_SIZE="10M"  # Maximum log size
 NOTIFICATION_EMAIL=""  # Email for notifications (optional, leave empty to disable)
 
@@ -31,9 +31,9 @@ log() {
     local message="$2"
     local timestamp
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    
+
     echo "[$timestamp] [$level] [PID:$$] $message" >> "$LOG_FILE"
-    
+
     # If running in terminal, also show on screen
     if [ -t 1 ]; then
         case "$level" in
@@ -49,7 +49,7 @@ log() {
 send_notification() {
     local subject="$1"
     local message="$2"
-    
+
     if [ ! -z "$NOTIFICATION_EMAIL" ] && command -v mail &> /dev/null; then
         echo "$message" | mail -s "$subject" "$NOTIFICATION_EMAIL"
         log "INFO" "Notification sent to $NOTIFICATION_EMAIL"
@@ -63,14 +63,14 @@ rotate_log() {
     if [ -f "$LOG_FILE" ]; then
         log_size=$(du -m "$LOG_FILE" | cut -f1)
         max_size=$(echo "$MAX_LOG_SIZE" | sed 's/M//')
-        
+
         if [ "$log_size" -gt "$max_size" ]; then
             log "INFO" "Rotating log (size: ${log_size}M > ${max_size}M)"
-            
+
             # Keep last 1000 lines
             tail -1000 "$LOG_FILE" > "${LOG_FILE}.tmp"
             mv "${LOG_FILE}.tmp" "$LOG_FILE"
-            
+
             log "INFO" "Log rotated successfully"
         fi
     fi
@@ -89,20 +89,20 @@ cleanup_old_logs() {
 check_prerequisites() {
     local errors=0
     local log_dir
-    
+
     # Check if main script exists
     if [ ! -f "$SCRIPT_PATH" ]; then
         log "ERROR" "Main script not found: $SCRIPT_PATH"
         errors=$((errors + 1))
     fi
-    
+
     # Check if script is executable
     if [ ! -x "$SCRIPT_PATH" ]; then
         log "ERROR" "Main script is not executable: $SCRIPT_PATH"
         log "INFO" "Run: chmod +x $SCRIPT_PATH"
         errors=$((errors + 1))
     fi
-    
+
     # Check if log directory exists
     log_dir=$(dirname "$LOG_FILE")
     if [ ! -d "$log_dir" ]; then
@@ -114,7 +114,7 @@ check_prerequisites() {
             errors=$((errors + 1))
         fi
     fi
-    
+
     return $errors
 }
 
@@ -123,7 +123,7 @@ check_lock() {
     local lock_pid
     if [ -f "$LOCK_FILE" ]; then
         lock_pid=$(cat "$LOCK_FILE" 2>/dev/null)
-        
+
         # Check if process still exists
         if [ ! -z "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
             log "WARNING" "Script is already running (PID: $lock_pid). Exiting."
@@ -133,12 +133,12 @@ check_lock() {
             rm -f "$LOCK_FILE"
         fi
     fi
-    
+
     return 0
 }
 
 # Function to create lock
-create_lock() {    
+create_lock() {
     if echo $$ > "$LOCK_FILE"; then
         log "INFO" "Lock file created (PID: $$)"
         return 0
@@ -169,68 +169,68 @@ main() {
     local end_time
     local duration
     start_time=$(date +%s)
-    
-    log "INFO" "=== STARTING GITHUB SYNC (via CRON) ==="
+
+    log "INFO" "=== STARTING NEXTCLOUD EXTERNAL STORAGE SCAN (via CRON) ==="
     log "INFO" "Script: $SCRIPT_PATH"
     log "INFO" "Log: $LOG_FILE"
     log "INFO" "PID: $$"
-    
+
     # Rotate log if necessary
     rotate_log
-    
+
     # Check prerequisites
     if ! check_prerequisites; then
         log "ERROR" "Prerequisites not met. Aborting."
-        send_notification "GitHub Sync - Error" "Prerequisites not met. Check logs."
+        send_notification "Nextcloud Scan - Error" "Prerequisites not met. Check logs."
         exit 1
     fi
-    
+
     # Check lock
     if ! check_lock; then
         exit 0
     fi
-    
+
     # Create lock
     if ! create_lock; then
         exit 1
     fi
-    
+
     # Setup cleanup on signal
     trap cleanup_on_signal INT TERM
-    
+
     # Execute main script
     log "INFO" "Executing main script..."
-    
+
     if "$SCRIPT_PATH" >> "$LOG_FILE" 2>&1; then
         end_time=$(date +%s)
         duration=$((end_time - start_time))
-        
-        log "SUCCESS" "Sync completed successfully (duration: ${duration}s)"
-        
+
+        log "SUCCESS" "Scan completed successfully (duration: ${duration}s)"
+
         # Success notification (only if configured)
         if [ ! -z "$NOTIFICATION_EMAIL" ]; then
-            send_notification "GitHub Sync - Success" "Sync completed in ${duration} seconds."
+            send_notification "Nextcloud Scan - Success" "Scan completed in ${duration} seconds."
         fi
-        
+
         exit_code=0
     else
         end_time=$(date +%s)
         duration=$((end_time - start_time))
-        
-        log "ERROR" "Sync error (duration: ${duration}s)"
-        
+
+        log "ERROR" "Scan error (duration: ${duration}s)"
+
         # Error notification
-        send_notification "GitHub Sync - Error" "Sync error after ${duration} seconds. Check logs."
-        
+        send_notification "Nextcloud Scan - Error" "Scan error after ${duration} seconds. Check logs."
+
         exit_code=1
     fi
-    
+
     # Cleanup
     cleanup_old_logs
     remove_lock
-    
+
     log "INFO" "=== PROCESS FINISHED (code: $exit_code) ==="
-    
+
     exit $exit_code
 }
 

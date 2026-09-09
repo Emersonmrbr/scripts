@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Directory where the scripts to be executed are located
-SCRIPT_DIR="/volume1/scripts/src/nas-automation"
+SCRIPT_DIR="/volume1/Scripts/src/nas-automation"
 
 # List of scripts to be executed
 SCRIPTS=("${SCRIPT_DIR}"/*-cron-wrapper.sh)
