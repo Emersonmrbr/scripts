@@ -4,7 +4,7 @@
 # File: nextcloud-cron-wrapper.sh
 
 # Configuration - EDIT AS NEEDED
-SCRIPT_PATH="/volume1/Scripts/src/nas-automation/scan-nextcloud.sh"
+SCRIPT_PATH="/volume1/Scripts/src/nas-automation/nextcloud-scan.sh"
 LOG_FILE="/volume1/logs/nextcloud-scan-cron.log"
 LOCK_FILE="/tmp/nextcloud-scan-cron.lock"
 MAX_LOG_SIZE="10M"  # Maximum log size
