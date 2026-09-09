@@ -41,29 +41,64 @@ case "$1" in
   exit 0
   ;;
 --all | -a)
-if sudo apt-get update --yes && sudo apt-get upgrade --yes && sudo apt-get dist-upgrade --yes && sudo apt-get autoremove --yes && sudo apt-get autoclean --yes || sudo apkg --update; then
-  echo "System updated and upgraded successfully."
-  exit 0
-else
-  echo "An error occurred during the update and upgrade process."
-  exit 1
-fi
+  if command -v apt-get &> /dev/null; then
+    echo "Updating and upgrading the system using apt..."
+      if sudo apt update && sudo apt full-upgrade -y && sudo apt autoremove -y && sudo apt clean; then
+          echo "System updated successfully."
+          exit 0
+      else
+          echo "Upgrade failed."
+          exit 1
+      fi
+  elif command -v apkg &> /dev/null; then
+    echo "Updating the system using apkg..."
+      if sudo apkg --update; then
+          echo "System updated successfully using apkg."
+          exit 0
+      else
+          echo "Upgrade failed using apkg."
+          exit 1
+      fi
+  else
+      echo "No supported package manager found. Please install apt-get or apkg."
+      exit 1
+  fi
   ;;
 --update | -u)
-  if sudo apt-get update --yes || sudo apkg --update; then
-    echo "Package lists updated successfully."
-    exit 0
+  if command -v apt-get &> /dev/null; then
+    echo "Updating package lists using apt..."
+    if sudo apt-get update --yes; then
+      echo "Package lists updated successfully."
+      exit 0
+    else
+      echo "An error occurred while updating package lists."
+      exit 1
+    fi
+  elif command -v apkg &> /dev/null; then
+    echo "Updating package lists using apkg..."
+    if sudo apkg --update; then
+      echo "Package lists updated successfully using apkg."
+      exit 0
+    else
+      echo "An error occurred while updating package lists using apkg."
+      exit 1
+    fi
   else
-    echo "An error occurred while updating package lists."
+    echo "No supported package manager found. Please install apt-get or apkg."
     exit 1
   fi
   ;;
 --upgrade | -g)
-  if sudo apt-get upgrade --yes && sudo apt-get dist-upgrade --yes; then
-    echo "Packages upgraded successfully."
-    exit 0
+  if command -v apt-get &> /dev/null; then
+    if sudo apt-get upgrade --yes && sudo apt-get dist-upgrade --yes; then
+      echo "Packages upgraded successfully."
+      exit 0
+    else
+      echo "An error occurred while upgrading packages."
+      exit 1
+    fi
   else
-    echo "An error occurred while upgrading packages."
+    echo "No supported package manager found. Please install apt-get."
     exit 1
   fi
   ;;
