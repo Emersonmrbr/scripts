@@ -23,8 +23,13 @@ if ! flock -n 200; then
 fi
 
 log "INFO" "Listing external storage mounts..."
-mount_ids=$(sudo docker exec -u www-data nextcloud-app php occ files_external:list --all --output=json \
-  | jq -r '.[].mount_id')
+mount_list=$(sudo docker exec -u www-data nextcloud-app php occ files_external:list --all --output=json 2>&1)
+if [ $? -ne 0 ]; then
+    log "ERROR" "Failed to list external storage mounts: $mount_list"
+    exit 1
+fi
+
+mount_ids=$(echo "$mount_list" | jq -r '.[].mount_id' 2>/dev/null)
 
 if [ -z "$mount_ids" ]; then
     log "WARNING" "No external storage mounts found"
