@@ -5,8 +5,8 @@
 
 # Configuration - EDIT AS NEEDED
 SCRIPT_PATH="/volume1/Scripts/src/nas-automation/nextcloud-scan.sh"
-LOG_FILE="/volume1/logs/nextcloud-scan-cron.log"
-LOCK_FILE="/tmp/nextcloud-scan-cron.lock"
+LOG_FILE="/volume1/logs/nextcloud-cron.log"
+LOCK_FILE="/tmp/nextcloud-cron.lock"
 MAX_LOG_SIZE="10M"  # Maximum log size
 NOTIFICATION_EMAIL=""  # Email for notifications (optional, leave empty to disable)
 
