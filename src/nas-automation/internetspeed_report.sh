@@ -43,37 +43,56 @@ readonly LOG_FILE="/volume1/logs/speedtest.log"
 # COLORS AND OUTPUT FUNCTIONS
 #------------------------------------------------------------------------------
 
-# Color definitions
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
-readonly NC='\033[0m' # No color
+# Colors for logs (removed in cron, but useful for manual testing)
+if [ -t 1 ]; then
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  YELLOW='\033[1;33m'
+  BLUE='\033[0;34m'
+  NC='\033[0m'
+else
+  RED=''
+  GREEN=''
+  YELLOW=''
+  BLUE=''
+  NC=''
+fi
 
-# Logging function
+# Enhanced logging function
 log() {
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+  local level="$1"
+  local message="$2"
+  local timestamp
+  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+
+  echo "[$timestamp] [$level] [PID:$$] $message" >> "$LOG_FILE"
+
+  # If running in terminal, also show on screen
+  if [ -t 1 ]; then
+    case "$level" in
+      "ERROR") echo -e "${RED}[$level]${NC} $message" ;;
+      "SUCCESS") echo -e "${GREEN}[$level]${NC} $message" ;;
+      "WARNING") echo -e "${YELLOW}[$level]${NC} $message" ;;
+      *) echo -e "${BLUE}[$level]${NC} $message" ;;
+    esac
+  fi
 }
 
 # Function to display colored messages
 print_status() {
-  echo -e "${BLUE}[INFO]${NC} $1"
-  log "INFO: $1"
+  log "INFO" "$1"
 }
 
 print_success() {
-  echo -e "${GREEN}[SUCCESS]${NC} $1"
-  log "SUCCESS: $1"
+  log "SUCCESS" "$1"
 }
 
 print_warning() {
-  echo -e "${YELLOW}[WARNING]${NC} $1"
-  log "WARNING: $1"
+  log "WARNING" "$1"
 }
 
 print_error() {
-  echo -e "${RED}[ERROR]${NC} $1"
-  log "ERROR: $1"
+  log "ERROR" "$1"
 }
 
 #------------------------------------------------------------------------------

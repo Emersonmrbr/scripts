@@ -13,15 +13,6 @@ set -uo pipefail  # Exit on undefined variables and pipe failures (but continue 
 # CONFIGURATION SECTION
 #------------------------------------------------------------------------------
 
-# Paymo API Configuration
-readonly PAYMO_TOKEN=$(grep PAYMO_TOKEN ~/.secrets.env | cut -d '=' -f2) || {
-    print_error "PAYMO_TOKEN not found. Please set environment variable or create ~/.secrets.env"
-    print_info "Get your API key at: https://app.paymoapp.com -> Settings -> API & Integrations"
-    exit 1
-}
-readonly PAYMO_EMAIL="${PAYMO_EMAIL:-emersonm@nucleomap.com.br}"
-readonly PAYMO_API_BASE="https://app.paymoapp.com/api"
-
 # Backup Configuration
 readonly BASE_DIR="${BASE_DIR:-/volume1/Backup/Paymo}"
 readonly LOG_FILE="${LOG_FILE:-/volume1/logs/paymo-backup.log}"
@@ -38,46 +29,79 @@ readonly CURRENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 # COLORS AND OUTPUT FUNCTIONS
 #------------------------------------------------------------------------------
 
-# Color definitions
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
-readonly CYAN='\033[0;36m'
-readonly NC='\033[0m' # No color
+# Colors for logs (removed in cron, but useful for manual testing)
+if [ -t 1 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    CYAN='\033[0;36m'
+    NC='\033[0m'
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    CYAN=''
+    NC=''
+fi
 
-# Logging function
+# Enhanced logging function
 log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+    local level="$1"
+    local message="$2"
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+
+    echo "[$timestamp] [$level] [PID:$$] $message" >> "$LOG_FILE"
+
+    # If running in terminal, also show on screen
+    if [ -t 1 ]; then
+        case "$level" in
+            "ERROR") echo -e "${RED}[$level]${NC} $message" >&2 ;;
+            "SUCCESS") echo -e "${GREEN}[$level]${NC} $message" >&2 ;;
+            "WARNING") echo -e "${YELLOW}[$level]${NC} $message" >&2 ;;
+            "DEBUG") echo -e "${CYAN}[$level]${NC} $message" >&2 ;;
+            *) echo -e "${BLUE}[$level]${NC} $message" >&2 ;;
+        esac
+    fi
 }
 
 # Output functions with consistent formatting
 print_info() {
-    echo -e "${BLUE}[INFO]${NC} $1" >&2
-    log "INFO: $1"
+    log "INFO" "$1"
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1" >&2
-    log "SUCCESS: $1"
+    log "SUCCESS" "$1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1" >&2
-    log "WARNING: $1"
+    log "WARNING" "$1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
-    log "ERROR: $1"
+    log "ERROR" "$1"
 }
 
 print_debug() {
     if [[ "${DEBUG:-false}" == "true" ]]; then
-        echo -e "${CYAN}[DEBUG]${NC} $1" >&2
-        log "DEBUG: $1"
+        log "DEBUG" "$1"
     fi
 }
+
+#------------------------------------------------------------------------------
+# API CONFIGURATION
+#------------------------------------------------------------------------------
+
+# Paymo API Configuration
+readonly PAYMO_TOKEN=$(grep PAYMO_TOKEN ~/.secrets.env | cut -d '=' -f2) || {
+    print_error "PAYMO_TOKEN not found. Please set environment variable or create ~/.secrets.env"
+    print_info "Get your API key at: https://app.paymoapp.com -> Settings -> API & Integrations"
+    exit 1
+}
+readonly PAYMO_EMAIL="${PAYMO_EMAIL:-emersonm@nucleomap.com.br}"
+readonly PAYMO_API_BASE="https://app.paymoapp.com/api"
 
 #------------------------------------------------------------------------------
 # VALIDATION FUNCTIONS

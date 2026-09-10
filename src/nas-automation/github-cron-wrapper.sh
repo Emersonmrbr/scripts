@@ -173,7 +173,6 @@ main() {
     log "INFO" "=== STARTING GITHUB SYNC (via CRON) ==="
     log "INFO" "Script: $SCRIPT_PATH"
     log "INFO" "Log: $LOG_FILE"
-    log "INFO" "PID: $$"
     
     # Rotate log if necessary
     rotate_log
